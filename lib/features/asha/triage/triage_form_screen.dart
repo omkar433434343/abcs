@@ -118,7 +118,11 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
         },
       );
       setState(() => _aiSuggestion = res.data['suggestion']);
-    } catch (_) {
+    } on DioException catch (e) {
+      debugPrint('AI Suggestion Dio Error: ${e.response?.statusCode} - ${e.response?.data}');
+      setState(() => _aiSuggestion = 'AI suggestions unavailable (Error: ${e.response?.statusCode}).');
+    } catch (e) {
+      debugPrint('AI Suggestion Error: $e');
       setState(() => _aiSuggestion = 'AI suggestions unavailable. Check your connection.');
     } finally {
       setState(() => _aiLoading = false);
@@ -176,8 +180,10 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
           context.pop();
         }
       } else {
+        final data = e.response?.data;
+        final errorMsg = data is Map ? data['detail'] : e.message;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.response?.data?['detail'] ?? e.message}')),
+          SnackBar(content: Text('Error: $errorMsg')),
         );
       }
     } finally {
