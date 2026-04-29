@@ -1,0 +1,515 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
+import '../../../core/auth/auth_provider.dart';
+import '../../../core/api/api_client.dart';
+import '../../../core/api/endpoints.dart';
+import '../../../core/models/models.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/offline/offline_queue.dart';
+import '../../../shared/widgets/severity_badge.dart';
+import '../../../shared/widgets/offline_banner.dart';
+
+final _ashaRecordsProvider = FutureProvider<List<TriageRecordModel>>((ref) async {
+  try {
+    final res = await ApiClient().dio.get(ApiEndpoints.triageRecords);
+    return (res.data as List).map((e) => TriageRecordModel.fromJson(e)).toList();
+  } catch (_) {
+    return [];
+  }
+});
+
+final _ashaPatientsProvider = FutureProvider<List<PatientModel>>((ref) async {
+  try {
+    final res = await ApiClient().dio.get(ApiEndpoints.patients);
+    return (res.data as List).map((e) => PatientModel.fromJson(e)).toList();
+  } catch (_) {
+    return [];
+  }
+});
+
+class AshaDashboard extends ConsumerWidget {
+  const AshaDashboard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authProvider);
+    final records = ref.watch(_ashaRecordsProvider);
+    final patients = ref.watch(_ashaPatientsProvider);
+    final queueCount = ref.watch(offlineQueueCountProvider);
+    final user = auth.user;
+
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(gradient: AppTheme.backgroundGradient),
+        child: SafeArea(
+          child: CustomScrollView(
+            slivers: [
+              // ── Header ─────────────────────────────────────────────
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const OfflineBanner(),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Namaste 🙏',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                Text(
+                                  user?.fullName ?? user?.employeeId ?? 'ASHA Worker',
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                if (user?.location != null)
+                                  Text(
+                                    '📍 ${user!.location}',
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => context.push('/asha/profile'),
+                            child: CircleAvatar(
+                              radius: 24,
+                              backgroundColor: AppColors.primary.withOpacity(0.2),
+                              child: const Icon(Icons.person_rounded, color: AppColors.primary),
+                            ),
+                          ),
+                        ],
+                      ).animate().fade(duration: 500.ms),
+
+                      const SizedBox(height: 24),
+
+                      // Offline queue alert
+                      queueCount.when(
+                        data: (count) => count > 0
+                            ? _OfflineQueueBadge(count: count)
+                            : const SizedBox(),
+                        loading: () => const SizedBox(),
+                        error: (_, __) => const SizedBox(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ── Stats Row ──────────────────────────────────────────
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _StatCard(
+                          label: 'Patients',
+                          icon: Icons.people_rounded,
+                          asyncValue: patients,
+                          valueBuilder: (data) => '${data.length}',
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _StatCard(
+                          label: 'Red Alerts',
+                          icon: Icons.warning_rounded,
+                          asyncValue: records,
+                          valueBuilder: (data) =>
+                              '${data.where((r) => r.severity == 'red').length}',
+                          color: AppColors.severityRed,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _StatCard(
+                          label: 'Triages',
+                          icon: Icons.assignment_rounded,
+                          asyncValue: records,
+                          valueBuilder: (data) => '${data.length}',
+                          color: AppColors.accent,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ── Quick Actions ──────────────────────────────────────
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Quick Actions',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _QuickAction(
+                              label: 'Register\nPatient',
+                              icon: Icons.person_add_rounded,
+                              gradient: AppTheme.ashaGradient,
+                              onTap: () => context.push('/asha/patients/new'),
+                              delay: 0,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _QuickAction(
+                              label: 'Text\nTriage',
+                              icon: Icons.assignment_add,
+                              gradient: const LinearGradient(colors: [Color(0xFF26C6DA), Color(0xFF00ACC1)]),
+                              onTap: () => context.push('/asha/triage'),
+                              delay: 100,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _QuickAction(
+                              label: 'Voice\nTriage',
+                              icon: Icons.mic_rounded,
+                              gradient: const LinearGradient(colors: [Color(0xFFFF7043), Color(0xFFFF5722)]),
+                              onTap: () => context.push('/asha/triage/voice'),
+                              delay: 200,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _QuickAction(
+                              label: 'My\nRecords',
+                              icon: Icons.history_rounded,
+                              gradient: const LinearGradient(colors: [Color(0xFF7E57C2), Color(0xFF5C35A0)]),
+                              onTap: () => context.push('/asha/records'),
+                              delay: 300,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ── Recent Triage ──────────────────────────────────────
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                  child: Text(
+                    'Recent Triage',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ),
+
+              records.when(
+                data: (data) {
+                  if (data.isEmpty) {
+                    return SliverToBoxAdapter(
+                      child: _EmptyState(
+                        icon: Icons.assignment_outlined,
+                        message: 'No triage records yet.\nTap Voice or Text Triage to start.',
+                      ),
+                    );
+                  }
+                  return SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (ctx, i) => _TriageListTile(record: data[i], index: i),
+                      childCount: data.take(5).length,
+                    ),
+                  );
+                },
+                loading: () => SliverToBoxAdapter(child: _ShimmerList()),
+                error: (_, __) => SliverToBoxAdapter(
+                  child: _EmptyState(
+                    icon: Icons.cloud_off_rounded,
+                    message: 'Could not load records.\nYou may be offline.',
+                  ),
+                ),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
+          ),
+        ),
+      ),
+
+      // Bottom nav
+      bottomNavigationBar: _AshaBotNav(current: 0),
+    );
+  }
+}
+
+// ── Sub-widgets ──────────────────────────────────────────────────────────────
+
+class _OfflineQueueBadge extends StatelessWidget {
+  final int count;
+  const _OfflineQueueBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.cloud_upload_outlined, color: AppColors.warning, size: 18),
+          const SizedBox(width: 10),
+          Text(
+            '$count item${count > 1 ? 's' : ''} pending sync',
+            style: const TextStyle(color: AppColors.warning, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final AsyncValue asyncValue;
+  final String Function(dynamic) valueBuilder;
+  final Color color;
+
+  const _StatCard({
+    required this.label,
+    required this.icon,
+    required this.asyncValue,
+    required this.valueBuilder,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 8),
+          asyncValue.when(
+            data: (d) => Text(
+              valueBuilder(d),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            loading: () => Shimmer.fromColors(
+              baseColor: AppColors.card,
+              highlightColor: AppColors.cardBorder,
+              child: Container(width: 30, height: 24, color: Colors.white),
+            ),
+            error: (_, __) => const Text('—', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          const SizedBox(height: 2),
+          Text(label,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickAction extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final LinearGradient gradient;
+  final VoidCallback onTap;
+  final int delay;
+
+  const _QuickAction({
+    required this.label,
+    required this.icon,
+    required this.gradient,
+    required this.onTap,
+    required this.delay,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.white, size: 26),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).animate().fade(delay: Duration(milliseconds: delay), duration: 400.ms).scale(begin: const Offset(0.9, 0.9));
+  }
+}
+
+class _TriageListTile extends StatelessWidget {
+  final TriageRecordModel record;
+  final int index;
+  const _TriageListTile({required this.record, required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: Row(
+        children: [
+          SeverityBadge(severity: record.severity),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  record.patientName,
+                  style: const TextStyle(
+                      color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  record.brief,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          if (record.reviewed)
+            const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 18),
+        ],
+      ),
+    ).animate().fade(delay: Duration(milliseconds: index * 60), duration: 400.ms).slideX(begin: 0.1);
+  }
+}
+
+class _ShimmerList extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: AppColors.card,
+      highlightColor: AppColors.cardBorder,
+      child: Column(
+        children: List.generate(
+          3,
+          (_) => Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+            height: 70,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String message;
+  const _EmptyState({required this.icon, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          Icon(icon, size: 48, color: AppColors.textMuted),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AshaBotNav extends StatelessWidget {
+  final int current;
+  const _AshaBotNav({required this.current});
+
+  @override
+  Widget build(BuildContext context) {
+    return BottomNavigationBar(
+      currentIndex: current,
+      onTap: (i) {
+        switch (i) {
+          case 0: context.go('/asha'); break;
+          case 1: context.push('/asha/patients'); break;
+          case 2: context.push('/asha/triage'); break;
+          case 3: context.push('/asha/records'); break;
+        }
+      },
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
+        BottomNavigationBarItem(icon: Icon(Icons.people_rounded), label: 'Patients'),
+        BottomNavigationBarItem(icon: Icon(Icons.assignment_add), label: 'Triage'),
+        BottomNavigationBarItem(icon: Icon(Icons.history_rounded), label: 'Records'),
+      ],
+    );
+  }
+}

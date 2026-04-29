@@ -1,0 +1,69 @@
+name: swasthya_setu_flutter
+description: "Swasthya Setu – Rural Health Companion for ASHA workers and THO officers"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # ── State Management ──────────────────────────────────────────────
+  flutter_riverpod: ^2.6.1
+
+  # ── Navigation ───────────────────────────────────────────────────
+  go_router: ^14.8.1
+
+  # ── Networking ───────────────────────────────────────────────────
+  dio: ^5.7.0
+  flutter_secure_storage: ^9.2.4
+
+  # ── Local Data (Offline Queue via secure storage) ────────────────
+  path_provider: ^2.1.5
+
+  # ── Connectivity / Offline Detection ─────────────────────────────
+  connectivity_plus: ^6.1.4
+
+  # ── Permissions ──────────────────────────────────────────────────
+  permission_handler: ^11.4.0
+
+  # ── Voice Recording ──────────────────────────────────────────────
+  record: ^6.0.0
+
+  # ── Location ─────────────────────────────────────────────────────
+  geolocator: ^13.0.2
+
+  # ── Map ──────────────────────────────────────────────────────────
+  flutter_map: ^8.1.1
+  latlong2: ^0.9.1
+
+  # ── Charts ───────────────────────────────────────────────────────
+  fl_chart: ^0.70.2
+
+  # ── Media ────────────────────────────────────────────────────────
+  image_picker: ^1.1.2
+
+  # ── UI ───────────────────────────────────────────────────────────
+  google_fonts: ^6.2.1
+  shimmer: ^3.0.0
+  flutter_animate: ^4.5.2
+  cached_network_image: ^3.4.1
+
+  # ── Utilities ────────────────────────────────────────────────────
+  intl: ^0.20.2
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/

@@ -1,0 +1,418 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:geolocator/geolocator.dart';
+import '../../../core/api/api_client.dart';
+import '../../../core/api/endpoints.dart';
+import '../../../core/auth/auth_provider.dart';
+import '../../../core/models/models.dart';
+import '../../../core/offline/offline_queue.dart';
+import '../../../core/theme/app_theme.dart';
+import 'package:uuid/uuid.dart';
+import 'package:dio/dio.dart';
+
+const _allSymptoms = [
+  'Fever', 'High Fever', 'Cough', 'Cold', 'Runny Nose', 'Difficulty Breathing',
+  'Chest Indrawing', 'Convulsions', 'Sleepy/Unconscious', 'Cannot Feed',
+  'Vomiting', 'Diarrhea', 'Dehydration', 'Severe Malnutrition',
+  'Joint Pain (Jodo Dard)', 'Fatigue (Thakaan)', 'Stiff Neck', 'Rash',
+  'Abdominal Pain', 'Headache', 'Jaundice', 'Swelling',
+];
+
+class TriageFormScreen extends ConsumerStatefulWidget {
+  const TriageFormScreen({super.key});
+
+  @override
+  ConsumerState<TriageFormScreen> createState() => _TriageFormScreenState();
+}
+
+class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
+  final _briefCtrl = TextEditingController();
+  final _tehsilCtrl = TextEditingController();
+  final _districtCtrl = TextEditingController();
+
+  final Set<String> _selected = {};
+  String _severity = 'yellow';
+  bool _sickleCell = false;
+  bool _loading = false;
+  bool _gettingLocation = false;
+  double? _lat, _lng;
+  String? _aiSuggestion;
+  bool _aiLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = ref.read(authProvider).user;
+    if (user?.district != null) _districtCtrl.text = user!.district!;
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _briefCtrl.dispose();
+    _tehsilCtrl.dispose();
+    _districtCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _getLocation() async {
+    setState(() => _gettingLocation = true);
+    try {
+      final perm = await Geolocator.requestPermission();
+      if (perm == LocationPermission.denied) return;
+      final pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.medium);
+      setState(() {
+        _lat = pos.latitude;
+        _lng = pos.longitude;
+      });
+    } finally {
+      setState(() => _gettingLocation = false);
+    }
+  }
+
+  Future<void> _getAiSuggestion() async {
+    if (_selected.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select at least one symptom first')),
+      );
+      return;
+    }
+    setState(() => _aiLoading = true);
+    try {
+      final res = await ApiClient().dio.post(
+        ApiEndpoints.aiSuggestion,
+        data: {
+          'symptoms': _selected.toList(),
+          'severity': _severity,
+          'patient_gender': 'unknown',
+          'patient_age': 0,
+        },
+      );
+      setState(() => _aiSuggestion = res.data['suggestion']);
+    } catch (_) {
+      setState(() => _aiSuggestion = 'AI suggestions unavailable. Check your connection.');
+    } finally {
+      setState(() => _aiLoading = false);
+    }
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selected.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select at least one symptom')),
+      );
+      return;
+    }
+
+    setState(() => _loading = true);
+    final payload = {
+      'patient_name': _nameCtrl.text.trim(),
+      'symptoms': _selected.toList(),
+      'severity': _severity,
+      'sickle_cell_risk': _sickleCell,
+      'brief': _briefCtrl.text.trim(),
+      'tehsil': _tehsilCtrl.text.trim(),
+      'district': _districtCtrl.text.trim(),
+      'latitude': _lat,
+      'longitude': _lng,
+    };
+
+    try {
+      await ApiClient().dio.post(ApiEndpoints.triageRecords, data: payload);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Record saved'), backgroundColor: AppColors.success),
+        );
+        context.pop();
+      }
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.receiveTimeout) {
+        // Save offline
+        await OfflineQueue.enqueue(QueueItem(
+          id: const Uuid().v4(),
+          type: 'triage',
+          data: payload,
+          createdAt: DateTime.now(),
+        ));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('📶 Saved offline — will sync when connected'),
+              backgroundColor: AppColors.warning,
+            ),
+          );
+          context.pop();
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.response?.data?['detail'] ?? e.message}')),
+        );
+      }
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('New Triage'),
+        actions: [
+          TextButton.icon(
+            onPressed: _loading ? null : _submit,
+            icon: _loading
+                ? const SizedBox(
+                    width: 16, height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.save_rounded, color: Colors.white),
+            label: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: BoxDecoration(gradient: AppTheme.backgroundGradient),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              // Patient name
+              _SectionHeader(title: 'Patient Info'),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Patient Name *',
+                  prefixIcon: Icon(Icons.person_outline_rounded, color: AppColors.textSecondary),
+                ),
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _tehsilCtrl,
+                      decoration: const InputDecoration(labelText: 'Tehsil'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _districtCtrl,
+                      decoration: const InputDecoration(labelText: 'District'),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // GPS
+              Row(
+                children: [
+                  _lat != null
+                      ? Text(
+                          '📍 ${_lat!.toStringAsFixed(4)}, ${_lng!.toStringAsFixed(4)}',
+                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                        )
+                      : const Text('No location captured',
+                          style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: _gettingLocation ? null : _getLocation,
+                    icon: _gettingLocation
+                        ? const SizedBox(
+                            width: 14, height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.my_location_rounded, size: 16),
+                    label: const Text('Get GPS'),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Severity
+              _SectionHeader(title: 'Severity'),
+              const SizedBox(height: 12),
+              Row(
+                children: ['green', 'yellow', 'red'].map((s) {
+                  final selected = _severity == s;
+                  final color = AppTheme.severityColor(s);
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _severity = s),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: selected ? color.withOpacity(0.2) : AppColors.card,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: selected ? color : AppColors.cardBorder,
+                            width: selected ? 2 : 1,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              s == 'green'
+                                  ? Icons.check_circle_rounded
+                                  : s == 'yellow'
+                                      ? Icons.warning_rounded
+                                      : Icons.emergency_rounded,
+                              color: color,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              s.toUpperCase(),
+                              style: TextStyle(
+                                color: selected ? color : AppColors.textSecondary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+
+              const SizedBox(height: 8),
+
+              // Sickle cell
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Sickle Cell Risk',
+                    style: TextStyle(color: AppColors.textPrimary)),
+                subtitle: const Text('Odisha high-risk district',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                value: _sickleCell,
+                activeColor: AppColors.warning,
+                onChanged: (v) => setState(() => _sickleCell = v),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Symptoms
+              _SectionHeader(title: 'Symptoms'),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _allSymptoms.map((s) {
+                  final selected = _selected.contains(s);
+                  return FilterChip(
+                    label: Text(s, style: TextStyle(
+                      color: selected ? AppColors.primary : AppColors.textSecondary,
+                      fontSize: 12,
+                    )),
+                    selected: selected,
+                    onSelected: (v) => setState(() {
+                      if (v) _selected.add(s); else _selected.remove(s);
+                    }),
+                    backgroundColor: AppColors.card,
+                    selectedColor: AppColors.primary.withOpacity(0.15),
+                    side: BorderSide(
+                      color: selected ? AppColors.primary : AppColors.cardBorder,
+                    ),
+                    checkmarkColor: AppColors.primary,
+                    showCheckmark: false,
+                  );
+                }).toList(),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Brief
+              _SectionHeader(title: 'Clinical Notes'),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _briefCtrl,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: 'Brief description (optional)',
+                  alignLabelWithHint: true,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // AI suggestion
+              OutlinedButton.icon(
+                onPressed: _aiLoading ? null : _getAiSuggestion,
+                icon: _aiLoading
+                    ? const SizedBox(
+                        width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.auto_awesome_rounded),
+                label: const Text('Get AI Suggestions'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.accent,
+                  side: const BorderSide(color: AppColors.accent),
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
+
+              if (_aiSuggestion != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    _aiSuggestion!,
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 13, height: 1.5),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 32),
+
+              // Submit
+              ElevatedButton(
+                onPressed: _loading ? null : _submit,
+                child: _loading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Save Triage Record'),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+        color: AppColors.textSecondary,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.8,
+      ),
+    );
+  }
+}
