@@ -11,13 +11,7 @@ import '../../../core/theme/app_theme.dart';
 import 'package:uuid/uuid.dart';
 import 'package:dio/dio.dart';
 
-const _allSymptoms = [
-  'Fever', 'High Fever', 'Cough', 'Cold', 'Runny Nose', 'Difficulty Breathing',
-  'Chest Indrawing', 'Convulsions', 'Sleepy/Unconscious', 'Cannot Feed',
-  'Vomiting', 'Diarrhea', 'Dehydration', 'Severe Malnutrition',
-  'Joint Pain (Jodo Dard)', 'Fatigue (Thakaan)', 'Stiff Neck', 'Rash',
-  'Abdominal Pain', 'Headache', 'Jaundice', 'Swelling',
-];
+
 
 class TriageFormScreen extends ConsumerStatefulWidget {
   const TriageFormScreen({super.key});
@@ -33,7 +27,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
   final _tehsilCtrl = TextEditingController();
   final _districtCtrl = TextEditingController();
 
-  final Set<String> _selected = {};
+  final _symptomsCtrl = TextEditingController();
   String _severity = 'yellow';
   bool _sickleCell = false;
   bool _loading = false;
@@ -55,6 +49,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
     _briefCtrl.dispose();
     _tehsilCtrl.dispose();
     _districtCtrl.dispose();
+    _symptomsCtrl.dispose();
     super.dispose();
   }
 
@@ -75,9 +70,10 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
   }
 
   Future<void> _getAiSuggestion() async {
-    if (_selected.isEmpty) {
+    final sympList = _symptomsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    if (sympList.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select at least one symptom first')),
+        const SnackBar(content: Text('Please enter at least one symptom')),
       );
       return;
     }
@@ -86,7 +82,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
       final res = await ApiClient().dio.post(
         ApiEndpoints.aiSuggestion,
         data: {
-          'symptoms': _selected.toList(),
+          'symptoms': sympList,
           'severity': _severity,
           'patient_gender': 'unknown',
           'patient_age': 0,
@@ -102,9 +98,10 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selected.isEmpty) {
+    final sympList = _symptomsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    if (sympList.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least one symptom')),
+        const SnackBar(content: Text('Please enter at least one symptom')),
       );
       return;
     }
@@ -112,7 +109,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
     setState(() => _loading = true);
     final payload = {
       'patient_name': _nameCtrl.text.trim(),
-      'symptoms': _selected.toList(),
+      'symptoms': sympList,
       'severity': _severity,
       'sickle_cell_risk': _sickleCell,
       'brief': _briefCtrl.text.trim(),
@@ -201,7 +198,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                           if (result.brief.isNotEmpty) {
                             _briefCtrl.text = result.brief;
                           }
-                          _selected.addAll(result.symptoms);
+                          _symptomsCtrl.text = result.symptoms.join(', ');
                         });
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -345,29 +342,15 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
               // Symptoms
               _SectionHeader(title: 'Symptoms'),
               const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _allSymptoms.map((s) {
-                  final selected = _selected.contains(s);
-                  return FilterChip(
-                    label: Text(s, style: TextStyle(
-                      color: selected ? AppColors.primary : AppColors.textSecondary,
-                      fontSize: 12,
-                    )),
-                    selected: selected,
-                    onSelected: (v) => setState(() {
-                      if (v) _selected.add(s); else _selected.remove(s);
-                    }),
-                    backgroundColor: AppColors.card,
-                    selectedColor: AppColors.primary.withOpacity(0.15),
-                    side: BorderSide(
-                      color: selected ? AppColors.primary : AppColors.cardBorder,
-                    ),
-                    checkmarkColor: AppColors.primary,
-                    showCheckmark: false,
-                  );
-                }).toList(),
+              TextFormField(
+                controller: _symptomsCtrl,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Enter symptoms (comma separated)',
+                  alignLabelWithHint: true,
+                  hintText: 'e.g. Fever, Cough, Headache',
+                ),
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
 
               const SizedBox(height: 20),

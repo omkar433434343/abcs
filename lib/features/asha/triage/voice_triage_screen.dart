@@ -90,7 +90,6 @@ class _VoiceTriageScreenState extends ConsumerState<VoiceTriageScreen>
       final response = await ApiClient().dio.post(
         ApiEndpoints.voiceTriage,
         data: formData,
-        options: Options(contentType: 'multipart/form-data'),
       );
 
       setState(() {
@@ -100,7 +99,14 @@ class _VoiceTriageScreenState extends ConsumerState<VoiceTriageScreen>
 
       // Cleanup temp file
       await file.delete();
+    } on DioException catch (e) {
+      debugPrint('Dio Error: ${e.response?.statusCode} - ${e.response?.data}');
+      setState(() {
+        _state = _VoiceState.error;
+        _errorMsg = e.response?.data?['detail'] ?? 'Could not process audio. Please check your connection.';
+      });
     } catch (e) {
+      debugPrint('Voice Triage Error: $e');
       setState(() {
         _state = _VoiceState.error;
         _errorMsg = 'Could not process audio. Please check your connection.';
