@@ -108,36 +108,9 @@ class _VoiceTriageScreenState extends ConsumerState<VoiceTriageScreen>
     }
   }
 
-  Future<void> _confirmAndSave() async {
-    if (_result == null) return;
-    try {
-      await ApiClient().dio.post(
-        ApiEndpoints.triageRecords,
-        data: {
-          'patient_name': 'Voice Triage Patient',
-          'symptoms': _result!.symptoms,
-          'severity': _result!.severity,
-          'sickle_cell_risk': _result!.sickleCell,
-          'brief': _result!.brief,
-          'source': 'voice_app',
-        },
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Triage record saved'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        context.pop();
-      }
-    } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to save. Tap Save again.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+  void _returnResult() {
+    if (_result != null) {
+      context.pop(_result);
     }
   }
 
@@ -177,7 +150,7 @@ class _VoiceTriageScreenState extends ConsumerState<VoiceTriageScreen>
         return Expanded(
           child: _ResultView(
             result: _result!,
-            onConfirm: _confirmAndSave,
+            onConfirm: _returnResult,
             onRetry: () => setState(() => _state = _VoiceState.idle),
           ),
         );
@@ -416,8 +389,8 @@ class _ResultView extends StatelessWidget {
                 flex: 2,
                 child: ElevatedButton.icon(
                   onPressed: onConfirm,
-                  icon: const Icon(Icons.save_rounded),
-                  label: const Text('Save Record'),
+                  icon: const Icon(Icons.check_rounded),
+                  label: const Text('Use Details'),
                 ),
               ),
             ],

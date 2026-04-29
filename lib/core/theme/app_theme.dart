@@ -2,35 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  // Brand gradient — deep teal to emerald
-  static const Color primary = Color(0xFF00897B);
-  static const Color primaryDark = Color(0xFF00695C);
-  static const Color primaryLight = Color(0xFF4DB6AC);
-  static const Color accent = Color(0xFF26C6DA);
+  // Brand gradient — fresh greens
+  static const Color primary = Color(0xFF2E7D32); // Green
+  static const Color primaryDark = Color(0xFF1B5E20);
+  static const Color primaryLight = Color(0xFF66BB6A);
+  static const Color accent = Color(0xFF81C784);
 
   // Severity
   static const Color severityRed = Color(0xFFEF5350);
   static const Color severityYellow = Color(0xFFFFCA28);
   static const Color severityGreen = Color(0xFF66BB6A);
 
-  // ASHA theme — warm teal
-  static const Color ashaStart = Color(0xFF00897B);
-  static const Color ashaEnd = Color(0xFF26C6DA);
+  // ASHA theme — soft green
+  static const Color ashaStart = Color(0xFF4CAF50);
+  static const Color ashaEnd = Color(0xFF81C784);
 
-  // THO theme — deep indigo
-  static const Color thoStart = Color(0xFF3949AB);
-  static const Color thoEnd = Color(0xFF7C4DFF);
+  // THO theme — deep forest green
+  static const Color thoStart = Color(0xFF1B5E20);
+  static const Color thoEnd = Color(0xFF43A047);
 
   // Backgrounds
-  static const Color background = Color(0xFF0A0F1E);
-  static const Color surface = Color(0xFF141929);
-  static const Color card = Color(0xFF1C2438);
-  static const Color cardBorder = Color(0xFF2A3450);
+  static const Color background = Color(0xFFF7FBF7); // Very light tinted green/white
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color card = Color(0xFFFFFFFF);
+  static const Color cardBorder = Color(0xFFE0E0E0);
 
   // Text
-  static const Color textPrimary = Color(0xFFF0F4FF);
-  static const Color textSecondary = Color(0xFF8A9BB8);
-  static const Color textMuted = Color(0xFF4A5568);
+  static const Color textPrimary = Color(0xFF1B1B1B);
+  static const Color textSecondary = Color(0xFF5E5E5E);
+  static const Color textMuted = Color(0xFF9E9E9E);
 
   // Status
   static const Color success = Color(0xFF4CAF50);
@@ -39,15 +39,15 @@ class AppColors {
   static const Color info = Color(0xFF29B6F6);
 
   // Offline indicator
-  static const Color offline = Color(0xFFBDBDBD);
+  static const Color offline = Color(0xFF757575);
 }
 
 class AppTheme {
-  static ThemeData get dark {
-    final base = ThemeData.dark(useMaterial3: true);
+  static ThemeData get light {
+    final base = ThemeData.light(useMaterial3: true);
     return base.copyWith(
       scaffoldBackgroundColor: AppColors.background,
-      colorScheme: ColorScheme.dark(
+      colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
         secondary: AppColors.accent,
         surface: AppColors.surface,
@@ -61,19 +61,21 @@ class AppTheme {
         displayColor: AppColors.textPrimary,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         titleTextStyle: GoogleFonts.inter(
-          color: AppColors.textPrimary,
+          color: Colors.white,
           fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       cardTheme: CardThemeData(
         color: AppColors.card,
-        elevation: 0,
+        elevation: 2,
+        shadowColor: Colors.black12,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: AppColors.cardBorder, width: 1),
@@ -102,7 +104,7 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          elevation: 0,
+          elevation: 2,
           minimumSize: const Size(double.infinity, 52),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
@@ -113,7 +115,7 @@ class AppTheme {
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textMuted,
         type: BottomNavigationBarType.fixed,
-        elevation: 0,
+        elevation: 8,
       ),
       dividerTheme: const DividerThemeData(color: AppColors.cardBorder, thickness: 1),
     );
@@ -133,7 +135,7 @@ class AppTheme {
   );
 
   static LinearGradient get backgroundGradient => const LinearGradient(
-    colors: [Color(0xFF0A0F1E), Color(0xFF111827)],
+    colors: [Color(0xFFF7FBF7), Color(0xFFE8F5E9)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );

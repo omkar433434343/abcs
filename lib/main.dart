@@ -28,7 +28,7 @@ class SwasthyaSetuApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Swasthya Setu',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
+      theme: AppTheme.light,
       routerConfig: router,
     );
   }

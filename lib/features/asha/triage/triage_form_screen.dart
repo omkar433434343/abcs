@@ -183,8 +183,45 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              // Patient name
-              _SectionHeader(title: 'Patient Info'),
+              // Header with Voice Triage button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const _SectionHeader(title: 'Patient Info'),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final result = await context.push<VoiceTriageResult>('/asha/triage/voice');
+                      if (result != null && mounted) {
+                        setState(() {
+                          if (result.patientName.isNotEmpty) {
+                            _nameCtrl.text = result.patientName;
+                          }
+                          _severity = result.severity;
+                          _sickleCell = result.sickleCell;
+                          if (result.brief.isNotEmpty) {
+                            _briefCtrl.text = result.brief;
+                          }
+                          _selected.addAll(result.symptoms);
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Form auto-filled from voice triage'),
+                            backgroundColor: AppColors.success,
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.mic_rounded, size: 18),
+                    label: const Text('Voice Fill'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(color: AppColors.primary),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 10),
               TextFormField(
                 controller: _nameCtrl,

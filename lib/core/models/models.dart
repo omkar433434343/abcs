@@ -173,6 +173,7 @@ class TriageRecordModel {
 
 // ── Voice Triage Result (transient — not persisted until user confirms) ──────
 class VoiceTriageResult {
+  final String patientName;
   final String transcript;
   final List<String> symptoms;
   final String severity;
@@ -180,6 +181,7 @@ class VoiceTriageResult {
   final String brief;
 
   const VoiceTriageResult({
+    required this.patientName,
     required this.transcript,
     required this.symptoms,
     required this.severity,
@@ -190,6 +192,7 @@ class VoiceTriageResult {
   factory VoiceTriageResult.fromJson(Map<String, dynamic> json) {
     final rawSymptoms = json['symptoms'];
     return VoiceTriageResult(
+      patientName: json['patient_name'] ?? '',
       transcript: json['transcript'] ?? '',
       symptoms: rawSymptoms is List
           ? rawSymptoms.map((e) => e.toString()).toList()
