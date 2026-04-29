@@ -193,7 +193,7 @@ class AshaDashboard extends ConsumerWidget {
                               label: 'Voice\nTriage',
                               icon: Icons.mic_rounded,
                               gradient: const LinearGradient(colors: [Color(0xFFFF7043), Color(0xFFFF5722)]),
-                              onTap: () => context.push('/asha/triage/voice'),
+                              onTap: () => context.push('/asha/triage?autoVoice=true'),
                               delay: 200,
                             ),
                           ),

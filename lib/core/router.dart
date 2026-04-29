@@ -48,7 +48,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/asha', builder: (_, __) => const AshaDashboard()),
       GoRoute(path: '/asha/patients', builder: (_, __) => const PatientListScreen()),
       GoRoute(path: '/asha/patients/new', builder: (_, __) => const PatientFormScreen()),
-      GoRoute(path: '/asha/triage', builder: (_, __) => const TriageFormScreen()),
+      GoRoute(
+        path: '/asha/triage',
+        builder: (_, state) => TriageFormScreen(
+          autoVoice: state.uri.queryParameters['autoVoice'] == 'true',
+        ),
+      ),
       GoRoute(
         path: '/asha/triage/voice',
         builder: (_, __) => const VoiceTriageScreen(),

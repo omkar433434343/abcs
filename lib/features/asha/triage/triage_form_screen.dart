@@ -14,7 +14,8 @@ import 'package:dio/dio.dart';
 
 
 class TriageFormScreen extends ConsumerStatefulWidget {
-  const TriageFormScreen({super.key});
+  final bool autoVoice;
+  const TriageFormScreen({super.key, this.autoVoice = false});
 
   @override
   ConsumerState<TriageFormScreen> createState() => _TriageFormScreenState();
@@ -41,6 +42,34 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
     super.initState();
     final user = ref.read(authProvider).user;
     if (user?.district != null) _districtCtrl.text = user!.district!;
+    if (widget.autoVoice) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startVoiceFill();
+      });
+    }
+  }
+
+  Future<void> _startVoiceFill() async {
+    final result = await context.push<VoiceTriageResult>('/asha/triage/voice');
+    if (result != null && mounted) {
+      setState(() {
+        if (result.patientName.isNotEmpty) {
+          _nameCtrl.text = result.patientName;
+        }
+        _severity = result.severity;
+        _sickleCell = result.sickleCell;
+        if (result.brief.isNotEmpty) {
+          _briefCtrl.text = result.brief;
+        }
+        _symptomsCtrl.text = result.symptoms.join(', ');
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Form auto-filled from voice triage'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
   }
 
   @override
@@ -186,28 +215,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                 children: [
                   const _SectionHeader(title: 'Patient Info'),
                   OutlinedButton.icon(
-                    onPressed: () async {
-                      final result = await context.push<VoiceTriageResult>('/asha/triage/voice');
-                      if (result != null && mounted) {
-                        setState(() {
-                          if (result.patientName.isNotEmpty) {
-                            _nameCtrl.text = result.patientName;
-                          }
-                          _severity = result.severity;
-                          _sickleCell = result.sickleCell;
-                          if (result.brief.isNotEmpty) {
-                            _briefCtrl.text = result.brief;
-                          }
-                          _symptomsCtrl.text = result.symptoms.join(', ');
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Form auto-filled from voice triage'),
-                            backgroundColor: AppColors.success,
-                          ),
-                        );
-                      }
-                    },
+                    onPressed: _startVoiceFill,
                     icon: const Icon(Icons.mic_rounded, size: 18),
                     label: const Text('Voice Fill'),
                     style: OutlinedButton.styleFrom(
