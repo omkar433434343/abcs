@@ -9,6 +9,7 @@ import '../../../core/models/models.dart';
 import '../../../core/offline/offline_queue.dart';
 import '../../../core/theme/app_theme.dart';
 import 'package:uuid/uuid.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 
 
@@ -35,6 +36,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
   bool _gettingLocation = false;
   double? _lat, _lng;
   String? _aiSuggestion;
+  String? _aiProviderInfo;
   bool _aiLoading = false;
 
   @override
@@ -98,6 +100,37 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
     }
   }
 
+  String _getOfflineAdvice(String symptoms) {
+    final lower = symptoms.toLowerCase();
+    final suggestions = <String>[];
+    
+    // Core Medical Protocol Fallbacks (WHO/IMNCI-inspired)
+    if (lower.contains('fever') || lower.contains('body hot') || lower.contains('tap')) {
+      suggestions.add('Monitor temperature regularly using a thermometer.');
+      suggestions.add('Keep the patient hydrated with plenty of fluids or ORS.');
+    }
+    if (lower.contains('cough') || lower.contains('breath') || lower.contains('chest')) {
+      suggestions.add('Monitor breathing rate; check for any chest in-drawing.');
+      suggestions.add('Keep the patient in a comfortable, upright position.');
+    }
+    if (lower.contains('diarrhea') || lower.contains('vomit') || lower.contains('loose motion') || lower.contains('stomach')) {
+      suggestions.add('Administer ORS immediately after every loose motion.');
+      suggestions.add('Continue breastfeeding or regular feeding if applicable.');
+    }
+    if (lower.contains('pain') || lower.contains('headache') || lower.contains('body ache')) {
+      suggestions.add('Ensure adequate rest in a quiet, cool room.');
+    }
+    
+    // Red Flags (Always include for safety)
+    suggestions.add('RED FLAGS: Seek immediate care if patient has seizures, persistent vomiting, or extreme lethargy.');
+    
+    if (suggestions.length <= 1) {
+      return 'Offline Advice: Ensure the patient rests, stays hydrated, and is monitored closely. If symptoms persist for more than 24 hours or worsen, visit the nearest PHC immediately.';
+    }
+    
+    return suggestions.map((s) => '- $s').join('\n');
+  }
+
   Future<void> _getAiSuggestion() async {
     final sympList = _symptomsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     if (sympList.isEmpty) {
@@ -106,8 +139,21 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
       );
       return;
     }
+
     setState(() => _aiLoading = true);
+    
     try {
+      // Check for internet connectivity (robust check)
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult.isEmpty || connectivityResult.contains(ConnectivityResult.none)) {
+        setState(() {
+          _aiSuggestion = _getOfflineAdvice(_symptomsCtrl.text);
+          _aiProviderInfo = 'Local Protocol (Offline Mode)';
+        });
+        return;
+      }
+
+      // Use a shorter timeout for AI suggestions so offline fallback kicks in faster if connection is poor
       final res = await ApiClient().dio.post(
         ApiEndpoints.aiSuggestion,
         data: {
@@ -116,18 +162,41 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
           'patient_gender': 'unknown',
           'patient_age': 0,
         },
+        options: Options(
+          sendTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 8),
+        ),
       );
-      setState(() => _aiSuggestion = res.data['suggestion']);
+      
+      if (mounted) {
+        setState(() {
+          _aiSuggestion = res.data['suggestion'];
+          _aiProviderInfo = res.data['provider'];
+        });
+      }
     } on DioException catch (e) {
-      debugPrint('AI Suggestion Dio Error: ${e.response?.statusCode} - ${e.response?.data}');
-      setState(() => _aiSuggestion = 'AI suggestions unavailable (Error: ${e.response?.statusCode}).');
+      debugPrint('AI Suggestion Connection Issue: ${e.type}');
+      if (mounted) {
+        setState(() {
+          _aiSuggestion = _getOfflineAdvice(_symptomsCtrl.text);
+          _aiProviderInfo = 'Local Protocol (Offline Fallback)';
+        });
+      }
     } catch (e) {
       debugPrint('AI Suggestion Error: $e');
-      setState(() => _aiSuggestion = 'AI suggestions unavailable. Check your connection.');
+      if (mounted) {
+        setState(() {
+          _aiSuggestion = _getOfflineAdvice(_symptomsCtrl.text);
+          _aiProviderInfo = 'Local Protocol (Offline Fallback)';
+        });
+      }
     } finally {
-      setState(() => _aiLoading = false);
+      if (mounted) {
+        setState(() => _aiLoading = false);
+      }
     }
   }
+
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -146,6 +215,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
       'severity': _severity,
       'sickle_cell_risk': _sickleCell,
       'brief': _briefCtrl.text.trim(),
+      'ai_suggestion': _aiSuggestion,
       'tehsil': _tehsilCtrl.text.trim(),
       'district': _districtCtrl.text.trim(),
       'latitude': _lat,
@@ -402,16 +472,22 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
               if (_aiSuggestion != null) ...[
                 const SizedBox(height: 12),
                 Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: AppColors.accent.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.accent.withOpacity(0.3)),
                   ),
-                  child: Text(
-                    _aiSuggestion!,
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 13, height: 1.5),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _aiSuggestion!.replaceAll('**', ''),
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 13, height: 1.5),
+                      ),
+                    ],
                   ),
                 ),
               ],

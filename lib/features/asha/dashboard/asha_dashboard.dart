@@ -30,11 +30,30 @@ final _ashaPatientsProvider = FutureProvider<List<PatientModel>>((ref) async {
   }
 });
 
-class AshaDashboard extends ConsumerWidget {
+class AshaDashboard extends ConsumerStatefulWidget {
   const AshaDashboard({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AshaDashboard> createState() => _AshaDashboardState();
+}
+
+class _AshaDashboardState extends ConsumerState<AshaDashboard> {
+  @override
+  void initState() {
+    super.initState();
+    // Auto-sync offline data and refresh providers on load
+    _refreshData();
+  }
+
+  Future<void> _refreshData() async {
+    await SyncService.syncAll();
+    ref.invalidate(_ashaRecordsProvider);
+    ref.invalidate(_ashaPatientsProvider);
+    ref.invalidate(offlineQueueCountProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final records = ref.watch(_ashaRecordsProvider);
     final patients = ref.watch(_ashaPatientsProvider);
@@ -45,226 +64,168 @@ class AshaDashboard extends ConsumerWidget {
       body: Container(
         decoration: BoxDecoration(gradient: AppTheme.backgroundGradient),
         child: SafeArea(
-          child: CustomScrollView(
-            slivers: [
-              // ── Header ─────────────────────────────────────────────
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const OfflineBanner(),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Namaste 🙏',
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                Text(
-                                  user?.fullName ?? user?.employeeId ?? 'ASHA Worker',
-                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                if (user?.location != null)
+          child: RefreshIndicator(
+            onRefresh: _refreshData,
+            color: AppColors.primary,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                // ── Header ─────────────────────────────────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const OfflineBanner(),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                   Text(
-                                    '📍 ${user!.location}',
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    'Namaste 🙏',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                       color: AppColors.textSecondary,
                                     ),
                                   ),
-                              ],
+                                  Text(
+                                    user?.fullName ?? user?.employeeId ?? 'ASHA Worker',
+                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  if (user?.location != null)
+                                    Text(
+                                      '📍 ${user!.location}',
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
-                          ),
-                          GestureDetector(
-                            onTap: () => context.push('/asha/profile'),
-                            child: CircleAvatar(
-                              radius: 24,
-                              backgroundColor: AppColors.primary.withOpacity(0.2),
-                              child: const Icon(Icons.person_rounded, color: AppColors.primary),
+                            GestureDetector(
+                              onTap: () => context.push('/asha/profile'),
+                              child: CircleAvatar(
+                                radius: 24,
+                                backgroundColor: AppColors.primary.withOpacity(0.2),
+                                child: const Icon(Icons.person_rounded, color: AppColors.primary),
+                              ),
                             ),
-                          ),
-                        ],
-                      ).animate().fade(duration: 500.ms),
-
-                      const SizedBox(height: 24),
-
-                      // Offline queue alert
-                      queueCount.when(
-                        data: (count) => count > 0
-                            ? _OfflineQueueBadge(count: count)
-                            : const SizedBox(),
-                        loading: () => const SizedBox(),
-                        error: (_, __) => const SizedBox(),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // ── Stats Row ──────────────────────────────────────────
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _StatCard(
-                          label: 'Patients',
-                          icon: Icons.people_rounded,
-                          asyncValue: patients,
-                          valueBuilder: (data) => '${data.length}',
-                          color: AppColors.primary,
+                          ],
+                        ).animate().fade(duration: 500.ms),
+  
+                        const SizedBox(height: 24),
+  
+                        // Offline queue alert
+                        queueCount.when(
+                          data: (count) => count > 0
+                              ? _OfflineQueueBadge(count: count)
+                              : const SizedBox(),
+                          loading: () => const SizedBox(),
+                          error: (_, __) => const SizedBox(),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StatCard(
-                          label: 'Red Alerts',
-                          icon: Icons.warning_rounded,
-                          asyncValue: records,
-                          valueBuilder: (data) =>
-                              '${data.where((r) => r.severity == 'red').length}',
-                          color: AppColors.severityRed,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StatCard(
-                          label: 'Triages',
-                          icon: Icons.assignment_rounded,
-                          asyncValue: records,
-                          valueBuilder: (data) => '${data.length}',
-                          color: AppColors.accent,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // ── Quick Actions ──────────────────────────────────────
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Quick Actions',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _QuickAction(
-                              label: 'Register\nPatient',
-                              icon: Icons.person_add_rounded,
-                              gradient: AppTheme.ashaGradient,
-                              onTap: () => context.push('/asha/patients/new'),
-                              delay: 0,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _QuickAction(
-                              label: 'Text\nTriage',
-                              icon: Icons.assignment_add,
-                              gradient: const LinearGradient(colors: [Color(0xFF26C6DA), Color(0xFF00ACC1)]),
-                              onTap: () => context.push('/asha/triage'),
-                              delay: 100,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _QuickAction(
-                              label: 'Voice\nTriage',
-                              icon: Icons.mic_rounded,
-                              gradient: const LinearGradient(colors: [Color(0xFFFF7043), Color(0xFFFF5722)]),
-                              onTap: () => context.push('/asha/triage?autoVoice=true'),
-                              delay: 200,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _QuickAction(
-                              label: 'My\nRecords',
-                              icon: Icons.history_rounded,
-                              gradient: const LinearGradient(colors: [Color(0xFF7E57C2), Color(0xFF5C35A0)]),
-                              onTap: () => context.push('/asha/records'),
-                              delay: 300,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // ── Recent Triage ──────────────────────────────────────
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-                  child: Text(
-                    'Recent Triage',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      ],
                     ),
                   ),
                 ),
-              ),
-
-              records.when(
-                data: (data) {
-                  if (data.isEmpty) {
-                    return SliverToBoxAdapter(
-                      child: _EmptyState(
-                        icon: Icons.assignment_outlined,
-                        message: 'No triage records yet.\nTap Voice or Text Triage to start.',
+  
+                // ── Stats Row ──────────────────────────────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _StatCard(
+                            label: 'Patients',
+                            icon: Icons.people_rounded,
+                            asyncValue: patients,
+                            valueBuilder: (data) => '${data.length}',
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _StatCard(
+                            label: 'Red Alerts',
+                            icon: Icons.warning_rounded,
+                            asyncValue: records,
+                            valueBuilder: (data) =>
+                                '${data.where((r) => r.severity == 'red').length}',
+                            color: AppColors.severityRed,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _StatCard(
+                            label: 'Triages',
+                            icon: Icons.assignment_rounded,
+                            asyncValue: records,
+                            valueBuilder: (data) => '${data.length}',
+                            color: AppColors.accent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+  
+                // ── Recent Triage ──────────────────────────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                    child: Text(
+                      'Recent Triage',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+  
+                records.when(
+                  data: (data) {
+                    if (data.isEmpty) {
+                      return SliverToBoxAdapter(
+                        child: _EmptyState(
+                          icon: Icons.assignment_outlined,
+                          message: 'No triage records yet.\nTap Triage tab to start.',
+                        ),
+                      );
+                    }
+                    return SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (ctx, i) => _TriageListTile(record: data[i], index: i),
+                        childCount: data.take(5).length,
                       ),
                     );
-                  }
-                  return SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (ctx, i) => _TriageListTile(record: data[i], index: i),
-                      childCount: data.take(5).length,
+                  },
+                  loading: () => SliverToBoxAdapter(child: _ShimmerList()),
+                  error: (_, __) => SliverToBoxAdapter(
+                    child: _EmptyState(
+                      icon: Icons.cloud_off_rounded,
+                      message: 'Could not load records.\nYou may be offline.',
                     ),
-                  );
-                },
-                loading: () => SliverToBoxAdapter(child: _ShimmerList()),
-                error: (_, __) => SliverToBoxAdapter(
-                  child: _EmptyState(
-                    icon: Icons.cloud_off_rounded,
-                    message: 'Could not load records.\nYou may be offline.',
                   ),
                 ),
-              ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
+  
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              ],
+            ),
           ),
         ),
       ),
 
-      // Bottom nav
-      bottomNavigationBar: _AshaBotNav(current: 0),
+      // Bottom nav is now handled by AshaShell
     );
   }
 }
+
 
 // ── Sub-widgets ──────────────────────────────────────────────────────────────
 
@@ -488,28 +449,4 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _AshaBotNav extends StatelessWidget {
-  final int current;
-  const _AshaBotNav({required this.current});
-
-  @override
-  Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: current,
-      onTap: (i) {
-        switch (i) {
-          case 0: context.go('/asha'); break;
-          case 1: context.push('/asha/patients'); break;
-          case 2: context.push('/asha/triage'); break;
-          case 3: context.push('/asha/records'); break;
-        }
-      },
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.people_rounded), label: 'Patients'),
-        BottomNavigationBarItem(icon: Icon(Icons.assignment_add), label: 'Triage'),
-        BottomNavigationBarItem(icon: Icon(Icons.history_rounded), label: 'Records'),
-      ],
-    );
-  }
-}
+// _AshaBotNav removed - handled by AshaShell

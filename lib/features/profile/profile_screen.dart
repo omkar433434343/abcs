@@ -2,69 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
-import 'dart:io';
 import '../../core/auth/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
 
-class ProfileScreen extends ConsumerStatefulWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
-}
-
-class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  final _nameCtrl = TextEditingController();
-  final _locationCtrl = TextEditingController();
-  bool _saving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final user = ref.read(authProvider).user;
-    _nameCtrl.text = user?.fullName ?? '';
-    _locationCtrl.text = user?.location ?? '';
-  }
-
-  @override
-  void dispose() {
-    _nameCtrl.dispose();
-    _locationCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickAvatar() async {
-    final picker = ImagePicker();
-    final file = await picker.pickImage(source: ImageSource.gallery, imageQuality: 60);
-    if (file == null) return;
-    final bytes = await File(file.path).readAsBytes();
-    final b64 = base64Encode(bytes);
-    await ref.read(authProvider.notifier).updateProfile({'avatar_b64': b64});
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Avatar updated'), backgroundColor: AppColors.success),
-      );
-    }
-  }
-
-  Future<void> _save() async {
-    setState(() => _saving = true);
-    await ref.read(authProvider.notifier).updateProfile({
-      'full_name': _nameCtrl.text.trim(),
-      'location': _locationCtrl.text.trim(),
-    });
-    setState(() => _saving = false);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Profile saved'), backgroundColor: AppColors.success),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).user;
     final isAsha = user?.role == 'asha';
     final gradient = isAsha ? AppTheme.ashaGradient : AppTheme.thoGradient;
@@ -72,133 +18,171 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Profile'),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              await ref.read(authProvider.notifier).logout();
-              if (mounted) context.go('/role');
-            },
-            child: const Text('Logout', style: TextStyle(color: AppColors.error)),
-          ),
-        ],
       ),
       body: Container(
         decoration: BoxDecoration(gradient: AppTheme.backgroundGradient),
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           children: [
-            // Avatar
+            // Avatar (Display only)
             Center(
-              child: Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  GestureDetector(
-                    onTap: _pickAvatar,
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundColor: gradient.colors.first.withOpacity(0.2),
-                      backgroundImage: user?.avatarB64 != null
-                          ? MemoryImage(base64Decode(user!.avatarB64!))
-                          : null,
-                      child: user?.avatarB64 == null
-                          ? Text(
-                              (user?.fullName ?? user?.employeeId ?? '?')
-                                  .substring(0, 1)
-                                  .toUpperCase(),
-                              style: TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.w700,
-                                  color: gradient.colors.first),
-                            )
-                          : null,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      gradient: gradient,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.camera_alt_rounded,
-                        color: Colors.white, size: 16),
-                  ),
-                ],
+              child: Hero(
+                tag: 'profile_avatar',
+                child: CircleAvatar(
+                  radius: 54,
+                  backgroundColor: gradient.colors.first.withOpacity(0.2),
+                  backgroundImage: user?.avatarB64 != null
+                      ? MemoryImage(base64Decode(user!.avatarB64!))
+                      : null,
+                  child: user?.avatarB64 == null
+                      ? Text(
+                          (user?.fullName ?? user?.employeeId ?? '?')
+                              .substring(0, 1)
+                              .toUpperCase(),
+                          style: TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.w700,
+                              color: gradient.colors.first),
+                        )
+                      : null,
+                ),
               ),
             ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
 
             Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  gradient: gradient,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  (user?.role ?? '').toUpperCase(),
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
-                ),
+              child: Column(
+                children: [
+                  Text(
+                    user?.fullName ?? 'No Name Set',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      gradient: gradient,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      (user?.role ?? '').toUpperCase(),
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w700, fontSize: 11),
+                    ),
+                  ),
+                ],
               ),
-            ),
+            ).animate().fade(delay: 200.ms),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 40),
 
-            // Info fields
+            // Profile Information Section
+            _SectionLabel(label: 'Personal Information'),
             _InfoCard(children: [
-              TextFormField(
-                controller: _nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Full Name',
-                  prefixIcon: Icon(Icons.person_outline_rounded, color: AppColors.textSecondary),
-                ),
+              _ReadOnlyField(
+                label: 'FULL NAME',
+                value: user?.fullName ?? '—',
+                icon: Icons.person_rounded,
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _locationCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Location / Village',
-                  prefixIcon: Icon(Icons.place_outlined, color: AppColors.textSecondary),
-                ),
+              const Divider(height: 32),
+              _ReadOnlyField(
+                label: 'LOCATION / VILLAGE',
+                value: user?.location ?? '—',
+                icon: Icons.place_rounded,
               ),
-            ]),
-
-            const SizedBox(height: 16),
-
-            _InfoCard(children: [
-              _ReadOnlyField('Employee ID', user?.employeeId ?? '—'),
-              const SizedBox(height: 12),
-              _ReadOnlyField('District', user?.district ?? '—'),
             ]),
 
             const SizedBox(height: 24),
 
-            Container(
-              decoration: BoxDecoration(
-                gradient: gradient,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: gradient.colors.first.withOpacity(0.3),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
+            _SectionLabel(label: 'Administrative Details'),
+            _InfoCard(children: [
+              _ReadOnlyField(
+                label: 'EMPLOYEE ID',
+                value: user?.employeeId ?? '—',
+                icon: Icons.badge_rounded,
+              ),
+              const Divider(height: 32),
+              _ReadOnlyField(
+                label: 'DISTRICT',
+                value: user?.district ?? '—',
+                icon: Icons.map_rounded,
+              ),
+            ]),
+
+            const SizedBox(height: 48),
+
+            // Logout Button
+            ElevatedButton(
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Logout'),
+                    content: const Text('Are you sure you want to sign out?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('Logout', style: TextStyle(color: AppColors.error)),
+                      ),
+                    ],
                   ),
+                );
+
+                if (confirm == true) {
+                  await ref.read(authProvider.notifier).logout();
+                  if (context.mounted) context.go('/role');
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error.withOpacity(0.1),
+                foregroundColor: AppColors.error,
+                side: const BorderSide(color: AppColors.error, width: 1.5),
+                elevation: 0,
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.logout_rounded),
+                  SizedBox(width: 12),
+                  Text('Logout from Account'),
                 ],
               ),
-              child: ElevatedButton(
-                onPressed: _saving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                ),
-                child: _saving
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Save Changes',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            ).animate().fade(delay: 400.ms),
+
+            const SizedBox(height: 20),
+            const Center(
+              child: Text(
+                'Profile details are managed by THO administration.',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String label;
+  const _SectionLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        label.toUpperCase(),
+        style: const TextStyle(
+          color: AppColors.textMuted,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
         ),
       ),
     );
@@ -212,11 +196,18 @@ class _InfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
     );
@@ -225,19 +216,36 @@ class _InfoCard extends StatelessWidget {
 
 class _ReadOnlyField extends StatelessWidget {
   final String label, value;
-  const _ReadOnlyField(this.label, this.value);
+  final IconData icon;
+  const _ReadOnlyField({required this.label, required this.value, required this.icon});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        Text(label,
-            style: const TextStyle(
-                color: AppColors.textMuted, fontSize: 11, letterSpacing: 0.8)),
-        const SizedBox(height: 4),
-        Text(value,
-            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: AppColors.primary, size: 20),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: const TextStyle(
+                      color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+              const SizedBox(height: 4),
+              Text(value,
+                  style: const TextStyle(
+                      color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
       ],
     );
   }

@@ -16,6 +16,8 @@ import '../features/tho/triage_review/triage_review_screen.dart';
 import '../features/tho/asha_network/asha_network_screen.dart';
 import '../features/tho/outbreaks/outbreak_map_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/asha/asha_shell.dart';
+import '../features/tho/tho_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authProvider);
@@ -44,37 +46,83 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => LoginScreen(role: state.pathParameters['role']!),
       ),
 
-      // ASHA Routes
-      GoRoute(path: '/asha', builder: (_, __) => const AshaDashboard()),
-      GoRoute(path: '/asha/patients', builder: (_, __) => const PatientListScreen()),
-      GoRoute(path: '/asha/patients/new', builder: (_, __) => const PatientFormScreen()),
-      GoRoute(
-        path: '/asha/triage',
-        builder: (_, state) => TriageFormScreen(
-          autoVoice: state.uri.queryParameters['autoVoice'] == 'true',
-        ),
+      // ASHA Shell Route
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) => AshaShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/asha', builder: (_, __) => const AshaDashboard()),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/asha/patients', builder: (_, __) => const PatientListScreen()),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/asha/triage',
+                builder: (_, state) => TriageFormScreen(
+                  autoVoice: state.uri.queryParameters['autoVoice'] == 'true',
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/asha/records', builder: (_, __) => const MyRecordsScreen()),
+            ],
+          ),
+        ],
       ),
+
+      // Other ASHA routes (pushed on top)
+      GoRoute(path: '/asha/patients/new', builder: (_, __) => const PatientFormScreen()),
       GoRoute(
         path: '/asha/triage/voice',
         builder: (_, __) => const VoiceTriageScreen(),
       ),
-      GoRoute(path: '/asha/records', builder: (_, __) => const MyRecordsScreen()),
       GoRoute(path: '/asha/profile', builder: (_, __) => const ProfileScreen()),
 
-      // THO Routes
-      GoRoute(path: '/tho', builder: (_, __) => const ThoDashboard()),
-      GoRoute(
-        path: '/tho/triage-review',
-        builder: (_, __) => const TriageReviewScreen(),
+      // THO Shell Route
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) => ThoShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/tho', builder: (_, __) => const ThoDashboard()),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/tho/triage-review',
+                builder: (_, __) => const TriageReviewScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/tho/asha-network',
+                builder: (_, __) => const AshaNetworkScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/tho/outbreaks',
+                builder: (_, __) => const OutbreakMapScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
-      GoRoute(
-        path: '/tho/asha-network',
-        builder: (_, __) => const AshaNetworkScreen(),
-      ),
-      GoRoute(
-        path: '/tho/outbreaks',
-        builder: (_, __) => const OutbreakMapScreen(),
-      ),
+
+      // Other THO routes
       GoRoute(path: '/tho/profile', builder: (_, __) => const ProfileScreen()),
     ],
   );

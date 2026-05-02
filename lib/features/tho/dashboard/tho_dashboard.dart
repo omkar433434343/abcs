@@ -18,6 +18,20 @@ final _thoRecordsProvider = FutureProvider<List<TriageRecordModel>>((ref) async 
   } catch (_) { return []; }
 });
 
+final _thoWorkersProvider = FutureProvider<List<UserModel>>((ref) async {
+  try {
+    final res = await ApiClient().dio.get(ApiEndpoints.ashaWorkers);
+    return (res.data as List).map((e) => UserModel.fromJson(e)).toList();
+  } catch (_) { return []; }
+});
+
+final _thoPatientsProvider = FutureProvider<List<PatientModel>>((ref) async {
+  try {
+    final res = await ApiClient().dio.get(ApiEndpoints.patients);
+    return (res.data as List).map((e) => PatientModel.fromJson(e)).toList();
+  } catch (_) { return []; }
+});
+
 class ThoDashboard extends ConsumerWidget {
   const ThoDashboard({super.key});
 
@@ -31,8 +45,15 @@ class ThoDashboard extends ConsumerWidget {
       body: Container(
         decoration: BoxDecoration(gradient: AppTheme.backgroundGradient),
         child: SafeArea(
-          child: CustomScrollView(
-            slivers: [
+          child: RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: () async {
+              ref.invalidate(_thoRecordsProvider);
+              ref.invalidate(_thoWorkersProvider);
+              ref.invalidate(_thoPatientsProvider);
+            },
+            child: CustomScrollView(
+              slivers: [
               // ── Header ──────────────────────────────────────────────
               SliverToBoxAdapter(
                 child: Padding(
@@ -96,21 +117,61 @@ class ThoDashboard extends ConsumerWidget {
                       final yellow = data.where((r) => r.severity == 'yellow').length;
                       final green = data.where((r) => r.severity == 'green').length;
                       final reviewed = data.where((r) => r.reviewed).length;
+                      
+                      final workers = ref.watch(_thoWorkersProvider);
+                      final patients = ref.watch(_thoPatientsProvider);
+
                       return Column(
                         children: [
                           Row(
                             children: [
-                              _StatChip(label: 'Total', value: '${data.length}',
-                                  color: AppColors.primary),
-                              const SizedBox(width: 10),
-                              _StatChip(label: 'Red', value: '$red',
-                                  color: AppColors.severityRed),
-                              const SizedBox(width: 10),
-                              _StatChip(label: 'Yellow', value: '$yellow',
-                                  color: AppColors.severityYellow),
-                              const SizedBox(width: 10),
-                              _StatChip(label: 'Green', value: '$green',
-                                  color: AppColors.severityGreen),
+                              Expanded(
+                                child: _ThoMetricCard(
+                                  label: 'Records',
+                                  value: '${data.length}',
+                                  icon: Icons.assignment_rounded,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _ThoMetricCard(
+                                  label: 'Red Alerts',
+                                  value: '$red',
+                                  icon: Icons.emergency_rounded,
+                                  color: AppColors.severityRed,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: workers.when(
+                                  data: (w) => _ThoMetricCard(
+                                    label: 'ASHA Workers',
+                                    value: '${w.length}',
+                                    icon: Icons.people_rounded,
+                                    color: AppColors.ashaStart,
+                                  ),
+                                  loading: () => const _LoadingMetric(),
+                                  error: (_, __) => const _ErrorMetric(),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: patients.when(
+                                  data: (p) => _ThoMetricCard(
+                                    label: 'Total Patients',
+                                    value: '${p.length}',
+                                    icon: Icons.person_search_rounded,
+                                    color: AppColors.info,
+                                  ),
+                                  loading: () => const _LoadingMetric(),
+                                  error: (_, __) => const _ErrorMetric(),
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -204,63 +265,7 @@ class ThoDashboard extends ConsumerWidget {
                 ),
               ),
 
-              // ── Quick Actions ────────────────────────────────────────
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Quick Access',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          )),
-                      const SizedBox(height: 14),
-                      GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        childAspectRatio: 1.6,
-                        children: [
-                          _ThoActionCard(
-                            title: 'Review Queue',
-                            subtitle: 'Pending triage records',
-                            icon: Icons.fact_check_rounded,
-                            gradient: AppTheme.thoGradient,
-                            onTap: () => context.push('/tho/triage-review'),
-                          ),
-                          _ThoActionCard(
-                            title: 'ASHA Network',
-                            subtitle: 'Worker directory',
-                            icon: Icons.people_rounded,
-                            gradient: AppTheme.ashaGradient,
-                            onTap: () => context.push('/tho/asha-network'),
-                          ),
-                          _ThoActionCard(
-                            title: 'Outbreak Map',
-                            subtitle: 'Disease tracking',
-                            icon: Icons.map_rounded,
-                            gradient: const LinearGradient(
-                                colors: [Color(0xFFEF5350), Color(0xFFD32F2F)]),
-                            onTap: () => context.push('/tho/outbreaks'),
-                          ),
-                          _ThoActionCard(
-                            title: 'My Profile',
-                            subtitle: 'Account settings',
-                            icon: Icons.manage_accounts_rounded,
-                            gradient: const LinearGradient(
-                                colors: [Color(0xFF546E7A), Color(0xFF37474F)]),
-                            onTap: () => context.push('/tho/profile'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              // Quick Actions section removed as requested
 
               // ── Recent Red Alerts ────────────────────────────────────
               SliverToBoxAdapter(
@@ -302,36 +307,70 @@ class ThoDashboard extends ConsumerWidget {
           ),
         ),
       ),
-      bottomNavigationBar: _ThoBotNav(current: 0),
+    ),
     );
   }
 }
 
-class _StatChip extends StatelessWidget {
+class _ThoMetricCard extends StatelessWidget {
   final String label, value;
+  final IconData icon;
   final Color color;
-  const _StatChip({required this.label, required this.value, required this.color});
+  const _ThoMetricCard({
+    required this.label, required this.value, required this.icon, required this.color
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Column(
-          children: [
-            Text(value,
-                style: TextStyle(
-                    color: color, fontSize: 20, fontWeight: FontWeight.w800)),
-            Text(label,
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.cardBorder),
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 12),
+          Text(value,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+          const SizedBox(height: 2),
+          Text(label,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoadingMetric extends StatelessWidget {
+  const _LoadingMetric();
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: AppColors.card,
+      highlightColor: AppColors.cardBorder,
+      child: Container(
+        height: 100,
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      ),
+    );
+  }
+}
+
+class _ErrorMetric extends StatelessWidget {
+  const _ErrorMetric();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 100,
+      decoration: BoxDecoration(
+          color: AppColors.card, borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.error.withOpacity(0.2))),
+      child: const Center(child: Icon(Icons.error_outline, color: AppColors.error, size: 20)),
     );
   }
 }
@@ -350,43 +389,6 @@ class _Legend extends StatelessWidget {
         const SizedBox(width: 8),
         Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
       ],
-    );
-  }
-}
-
-class _ThoActionCard extends StatelessWidget {
-  final String title, subtitle;
-  final IconData icon;
-  final LinearGradient gradient;
-  final VoidCallback onTap;
-  const _ThoActionCard({
-    required this.title, required this.subtitle, required this.icon,
-    required this.gradient, required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: Colors.white, size: 24),
-            const Spacer(),
-            Text(title,
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
-            Text(subtitle,
-                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 10)),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -410,49 +412,23 @@ class _AlertTile extends StatelessWidget {
           const Icon(Icons.emergency_rounded, color: AppColors.severityRed, size: 20),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(record.patientName,
-                    style: const TextStyle(
-                        color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
-                Text(record.brief,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-              ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(record.patientName,
+                      style: const TextStyle(
+                          color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                  Text(record.brief,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                ],
+              ),
             ),
-          ),
           if (record.sickleCell)
             const Icon(Icons.warning_rounded, color: AppColors.warning, size: 16),
         ],
       ),
-    );
-  }
-}
-
-class _ThoBotNav extends StatelessWidget {
-  final int current;
-  const _ThoBotNav({required this.current});
-
-  @override
-  Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: current,
-      onTap: (i) {
-        switch (i) {
-          case 0: context.go('/tho'); break;
-          case 1: context.push('/tho/triage-review'); break;
-          case 2: context.push('/tho/asha-network'); break;
-          case 3: context.push('/tho/outbreaks'); break;
-        }
-      },
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: 'Overview'),
-        BottomNavigationBarItem(icon: Icon(Icons.fact_check_rounded), label: 'Review'),
-        BottomNavigationBarItem(icon: Icon(Icons.people_rounded), label: 'ASHA'),
-        BottomNavigationBarItem(icon: Icon(Icons.map_rounded), label: 'Map'),
-      ],
     );
   }
 }
