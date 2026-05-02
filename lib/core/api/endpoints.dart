@@ -12,6 +12,7 @@ class ApiEndpoints {
 
   // Patients
   static const String patients = '/api/v1/patients/';
+  static String patientById(String id) => '/api/v1/patients/$id';
 
   // Triage
   static const String triageRecords = '/api/v1/triage_records/';
@@ -24,4 +25,12 @@ class ApiEndpoints {
 
   // Reviews
   static const String reviews = '/api/v1/reviews';
+
+  // Patient progress timeline
+  static const String patientProgress = '/api/v1/patient_progress/';
+  static const List<String> patientProgressCandidates = [
+    '/api/v1/patient_progress/',
+    '/api/v1/patient-progress/',
+    '/api/v1/progress_updates/',
+  ];
 }

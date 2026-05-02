@@ -139,7 +139,8 @@ class PatientListScreen extends ConsumerWidget {
 // ── Patient Registration Form ─────────────────────────────────────────────────
 
 class PatientFormScreen extends ConsumerStatefulWidget {
-  const PatientFormScreen({super.key});
+  final PatientModel? editPatient;
+  const PatientFormScreen({super.key, this.editPatient});
 
   @override
   ConsumerState<PatientFormScreen> createState() => _PatientFormScreenState();
@@ -162,6 +163,17 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
     super.initState();
     final user = ref.read(authProvider).user;
     if (user?.district != null) _districtCtrl.text = user!.district!;
+    final p = widget.editPatient;
+    if (p != null) {
+      _nameCtrl.text = p.name;
+      _ageCtrl.text = p.age?.toString() ?? '';
+      _villageCtrl.text = p.village ?? '';
+      _tehsilCtrl.text = p.tehsil ?? '';
+      _districtCtrl.text = p.district ?? _districtCtrl.text;
+      _abhaCtrl.text = p.abhaId ?? '';
+      _gender = p.gender ?? _gender;
+      _pregnant = p.pregnant;
+    }
   }
 
   @override
@@ -188,22 +200,44 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
     };
 
     try {
-      await ApiClient().dio.post(ApiEndpoints.patients, data: payload);
+      if (widget.editPatient == null) {
+        await ApiClient().dio.post(ApiEndpoints.patients, data: payload);
+      } else {
+        await ApiClient().dio.patch(
+          ApiEndpoints.patientById(widget.editPatient!.id),
+          data: payload,
+        );
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('✅ Patient registered')), backgroundColor: AppColors.success),
+          SnackBar(
+            content: Text(
+              widget.editPatient == null
+                  ? context.tr('✅ Patient registered')
+                  : context.tr('✅ Patient updated'),
+            ),
+            backgroundColor: AppColors.success,
+          ),
         );
         context.pop();
       }
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.receiveTimeout) {
-        await OfflineQueue.enqueue(QueueItem(
-          id: const Uuid().v4(),
-          type: 'patient',
-          data: payload,
-          createdAt: DateTime.now(),
-        ));
+        if (widget.editPatient == null) {
+          await OfflineQueue.enqueue(QueueItem(
+            id: const Uuid().v4(),
+            type: 'patient',
+            data: payload,
+            createdAt: DateTime.now(),
+          ));
+        } else {
+          await OfflineQueue.enqueueRequest(
+            method: 'PATCH',
+            endpoint: ApiEndpoints.patientById(widget.editPatient!.id),
+            data: payload,
+          );
+        }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -226,7 +260,13 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       appBar: AppBar(title: Text(context.tr('Register Patient'))),
+       appBar: AppBar(
+         title: Text(
+           widget.editPatient == null
+               ? context.tr('Register Patient')
+               : context.tr('Update Patient'),
+         ),
+       ),
       body: Container(
         decoration: BoxDecoration(gradient: AppTheme.backgroundGradient),
         child: Form(
@@ -311,7 +351,11 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
                 onPressed: _loading ? null : _submit,
                 child: _loading
                     ? const CircularProgressIndicator(color: Colors.white)
-                     : Text(context.tr('Register Patient')),
+                     : Text(
+                         widget.editPatient == null
+                             ? context.tr('Register Patient')
+                             : context.tr('Update Patient'),
+                       ),
               ),
               const SizedBox(height: 40),
             ],

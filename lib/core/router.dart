@@ -10,6 +10,7 @@ import '../features/asha/patients/patient_list_screen.dart';
 import '../features/asha/patients/patient_form_screen.dart';
 import '../features/asha/patients/patient_detail_screen.dart';
 import '../features/asha/patients/patient_chat_screen.dart';
+import '../features/asha/patients/patient_progress_form_screen.dart';
 import '../features/asha/triage/triage_form_screen.dart';
 import '../features/asha/triage/voice_triage_screen.dart';
 import '../features/tho/dashboard/tho_dashboard.dart';
@@ -77,12 +78,20 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Other ASHA routes (pushed on top)
       GoRoute(path: '/asha/patients/new', builder: (_, __) => const PatientFormScreen()),
       GoRoute(
+        path: '/asha/patients/edit',
+        builder: (_, state) => PatientFormScreen(editPatient: state.extra as PatientModel),
+      ),
+      GoRoute(
         path: '/asha/patients/detail',
         builder: (_, state) => PatientDetailScreen(patient: state.extra as PatientModel),
       ),
       GoRoute(
         path: '/asha/patients/chat',
         builder: (_, state) => PatientChatScreen(patient: state.extra as PatientModel),
+      ),
+      GoRoute(
+        path: '/asha/patients/progress/new',
+        builder: (_, state) => PatientProgressFormScreen(patient: state.extra as PatientModel),
       ),
       GoRoute(
         path: '/asha/triage/voice',

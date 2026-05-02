@@ -280,3 +280,52 @@ class ReviewModel {
     createdAt: json['created_at'],
   );
 }
+
+// ── Patient Progress Update model ─────────────────────────────────────────────
+class PatientProgressUpdateModel {
+  final String id;
+  final String patientId;
+  final String status;
+  final List<String> symptoms;
+  final String? notes;
+  final String? createdAt;
+
+  const PatientProgressUpdateModel({
+    required this.id,
+    required this.patientId,
+    required this.status,
+    required this.symptoms,
+    this.notes,
+    this.createdAt,
+  });
+
+  factory PatientProgressUpdateModel.fromJson(Map<String, dynamic> json) {
+    final rawSymptoms = json['symptoms'];
+    return PatientProgressUpdateModel(
+      id: (json['id'] ?? '').toString(),
+      patientId: (json['patient_id'] ?? json['patientId'] ?? '').toString(),
+      status: (json['status'] ?? 'stable').toString(),
+      symptoms: rawSymptoms is List
+          ? rawSymptoms.map((e) => e.toString()).toList()
+          : rawSymptoms is String
+              ? rawSymptoms
+                  .replaceAll('[', '')
+                  .replaceAll(']', '')
+                  .replaceAll('"', '')
+                  .split(',')
+                  .map((e) => e.trim())
+                  .where((e) => e.isNotEmpty)
+                  .toList()
+              : <String>[],
+      notes: json['notes']?.toString(),
+      createdAt: (json['created_at'] ?? json['createdAt'])?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'patient_id': patientId,
+    'status': status,
+    'symptoms': symptoms,
+    'notes': notes,
+  };
+}
