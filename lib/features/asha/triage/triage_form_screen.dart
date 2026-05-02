@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/endpoints.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/i18n/app_localizations.dart';
 import '../../../core/models/models.dart';
 import '../../../core/offline/offline_queue.dart';
 import '../../../core/theme/app_theme.dart';
@@ -66,8 +67,8 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
         _symptomsCtrl.text = result.symptoms.join(', ');
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Form auto-filled from voice triage'),
+        SnackBar(
+          content: Text(context.tr('Form auto-filled from voice triage')),
           backgroundColor: AppColors.success,
         ),
       );
@@ -135,7 +136,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
     final sympList = _symptomsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     if (sympList.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter at least one symptom')),
+        SnackBar(content: Text(context.tr('Please enter at least one symptom'))),
       );
       return;
     }
@@ -203,7 +204,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
     final sympList = _symptomsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     if (sympList.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter at least one symptom')),
+        SnackBar(content: Text(context.tr('Please enter at least one symptom'))),
       );
       return;
     }
@@ -226,7 +227,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
       await ApiClient().dio.post(ApiEndpoints.triageRecords, data: payload);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Record saved'), backgroundColor: AppColors.success),
+          SnackBar(content: Text(context.tr('✅ Record saved')), backgroundColor: AppColors.success),
         );
         context.pop();
       }
@@ -242,8 +243,8 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
         ));
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('📶 Saved offline — will sync when connected'),
+            SnackBar(
+              content: Text(context.tr('📶 Saved offline — will sync when connected')),
               backgroundColor: AppColors.warning,
             ),
           );
@@ -265,7 +266,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Triage'),
+        title: Text(context.tr('New Triage')),
         actions: [
           TextButton.icon(
             onPressed: _loading ? null : _submit,
@@ -274,7 +275,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                     width: 16, height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.save_rounded, color: Colors.white),
-            label: const Text('Save', style: TextStyle(color: Colors.white)),
+            label: Text(context.tr('Save'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -289,11 +290,11 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const _SectionHeader(title: 'Patient Info'),
+                  _SectionHeader(title: context.tr('Patient Info')),
                   OutlinedButton.icon(
                     onPressed: _startVoiceFill,
                     icon: const Icon(Icons.mic_rounded, size: 18),
-                    label: const Text('Voice Fill'),
+                    label: Text(context.tr('Voice Fill')),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
                       side: const BorderSide(color: AppColors.primary),
@@ -306,11 +307,11 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
               const SizedBox(height: 10),
               TextFormField(
                 controller: _nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Patient Name *',
-                  prefixIcon: Icon(Icons.person_outline_rounded, color: AppColors.textSecondary),
+                decoration: InputDecoration(
+                  labelText: context.tr('Patient Name *'),
+                  prefixIcon: const Icon(Icons.person_outline_rounded, color: AppColors.textSecondary),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                validator: (v) => (v == null || v.trim().isEmpty) ? context.tr('Required') : null,
               ),
               const SizedBox(height: 12),
               Row(
@@ -318,14 +319,14 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _tehsilCtrl,
-                      decoration: const InputDecoration(labelText: 'Tehsil'),
+                      decoration: InputDecoration(labelText: context.tr('Tehsil')),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: TextFormField(
                       controller: _districtCtrl,
-                      decoration: const InputDecoration(labelText: 'District'),
+                      decoration: InputDecoration(labelText: context.tr('District')),
                     ),
                   ),
                 ],
@@ -341,8 +342,8 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                           '📍 ${_lat!.toStringAsFixed(4)}, ${_lng!.toStringAsFixed(4)}',
                           style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                         )
-                      : const Text('No location captured',
-                          style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                      : Text(context.tr('No location captured'),
+                          style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
                   const Spacer(),
                   TextButton.icon(
                     onPressed: _gettingLocation ? null : _getLocation,
@@ -351,7 +352,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                             width: 14, height: 14,
                             child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.my_location_rounded, size: 16),
-                    label: const Text('Get GPS'),
+                    label: Text(context.tr('Get GPS')),
                   ),
                 ],
               ),
@@ -359,7 +360,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
               const SizedBox(height: 20),
 
               // Severity
-              _SectionHeader(title: 'Severity'),
+              _SectionHeader(title: context.tr('Severity')),
               const SizedBox(height: 12),
               Row(
                 children: ['green', 'yellow', 'red'].map((s) {
@@ -412,10 +413,10 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
               // Sickle cell
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Sickle Cell Risk',
-                    style: TextStyle(color: AppColors.textPrimary)),
-                subtitle: const Text('Odisha high-risk district',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                 title: Text(context.tr('Sickle Cell Risk'),
+                     style: const TextStyle(color: AppColors.textPrimary)),
+                 subtitle: Text(context.tr('Odisha high-risk district'),
+                     style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                 value: _sickleCell,
                 activeColor: AppColors.warning,
                 onChanged: (v) => setState(() => _sickleCell = v),
@@ -424,29 +425,29 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
               const SizedBox(height: 16),
 
               // Symptoms
-              _SectionHeader(title: 'Symptoms'),
+              _SectionHeader(title: context.tr('Symptoms')),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _symptomsCtrl,
                 maxLines: 2,
-                decoration: const InputDecoration(
-                  labelText: 'Enter symptoms (comma separated)',
+                decoration: InputDecoration(
+                  labelText: context.tr('Enter symptoms (comma separated)'),
                   alignLabelWithHint: true,
-                  hintText: 'e.g. Fever, Cough, Headache',
+                  hintText: context.tr('e.g. Fever, Cough, Headache'),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                validator: (v) => (v == null || v.trim().isEmpty) ? context.tr('Required') : null,
               ),
 
               const SizedBox(height: 20),
 
               // Brief
-              _SectionHeader(title: 'Clinical Notes'),
+              _SectionHeader(title: context.tr('Clinical Notes')),
               const SizedBox(height: 10),
               TextFormField(
                 controller: _briefCtrl,
                 maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Brief description (optional)',
+                decoration: InputDecoration(
+                  labelText: context.tr('Brief description (optional)'),
                   alignLabelWithHint: true,
                 ),
               ),
@@ -461,7 +462,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                         width: 16, height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.auto_awesome_rounded),
-                label: const Text('Get AI Suggestions'),
+                label: Text(context.tr('Get AI Suggestions')),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.accent,
                   side: const BorderSide(color: AppColors.accent),
@@ -499,7 +500,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                 onPressed: _loading ? null : _submit,
                 child: _loading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Save Triage Record'),
+                    : Text(context.tr('Save Triage Record')),
               ),
               const SizedBox(height: 40),
             ],

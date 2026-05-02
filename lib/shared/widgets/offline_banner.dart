@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/i18n/app_localizations.dart';
 import '../../core/offline/offline_queue.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -21,11 +22,13 @@ class OfflineBanner extends ConsumerWidget {
                 border: Border.all(color: AppColors.offline.withOpacity(0.3)),
               ),
               child: Row(
-                children: const [
-                  Icon(Icons.wifi_off_rounded, color: AppColors.offline, size: 16),
-                  SizedBox(width: 10),
-                  Text('You are offline — data will sync when connected',
-                      style: TextStyle(color: AppColors.offline, fontSize: 12)),
+                children: [
+                  const Icon(Icons.wifi_off_rounded, color: AppColors.offline, size: 16),
+                  const SizedBox(width: 10),
+                  Text(
+                    context.tr('You are offline - data will sync when connected'),
+                    style: const TextStyle(color: AppColors.offline, fontSize: 12),
+                  ),
                 ],
               ),
             ),

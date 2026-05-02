@@ -7,9 +7,11 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/endpoints.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/i18n/app_localizations.dart';
 import '../../../core/models/models.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/offline_banner.dart';
+import '../../../shared/widgets/language_selector.dart';
 
 final _thoRecordsProvider = FutureProvider<List<TriageRecordModel>>((ref) async {
   try {
@@ -87,19 +89,20 @@ class ThoDashboard extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(user?.fullName ?? 'THO Officer',
+                                Text(user?.fullName ?? context.tr('THO Officer'),
                                     style: const TextStyle(
                                         color: AppColors.textPrimary,
                                         fontWeight: FontWeight.w700,
                                         fontSize: 16)),
                                 Text(
-                                  '${user?.district ?? 'All Districts'} District',
+                                  '${user?.district ?? context.tr('All Districts')} ${context.tr('District')}',
                                   style: const TextStyle(
                                       color: AppColors.textSecondary, fontSize: 12),
                                 ),
                               ],
                             ),
                           ),
+                          const LanguageSelector(),
                           GestureDetector(
                             onTap: () => context.push('/tho/profile'),
                             child: const CircleAvatar(
@@ -136,7 +139,7 @@ class ThoDashboard extends ConsumerWidget {
                             children: [
                               Expanded(
                                 child: _ThoMetricCard(
-                                  label: 'Records',
+                                  label: context.tr('Records'),
                                   value: '${data.length}',
                                   icon: Icons.assignment_rounded,
                                   color: AppColors.primary,
@@ -145,7 +148,7 @@ class ThoDashboard extends ConsumerWidget {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: _ThoMetricCard(
-                                  label: 'Red Alerts',
+                                  label: context.tr('Red Alerts'),
                                   value: '$red',
                                   icon: Icons.emergency_rounded,
                                   color: AppColors.severityRed,
@@ -159,7 +162,7 @@ class ThoDashboard extends ConsumerWidget {
                               Expanded(
                                 child: workers.when(
                                   data: (w) => _ThoMetricCard(
-                                    label: 'ASHA Workers',
+                                    label: context.tr('ASHA Workers'),
                                     value: '${w.length}',
                                     icon: Icons.people_rounded,
                                     color: AppColors.ashaStart,
@@ -172,7 +175,7 @@ class ThoDashboard extends ConsumerWidget {
                               Expanded(
                                 child: patients.when(
                                   data: (p) => _ThoMetricCard(
-                                    label: 'Total Patients',
+                                    label: context.tr('Total Patients'),
                                     value: '${p.length}',
                                     icon: Icons.person_search_rounded,
                                     color: AppColors.info,
@@ -242,13 +245,13 @@ class ThoDashboard extends ConsumerWidget {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      _Legend('Red', AppColors.severityRed),
+                                      _Legend(context.tr('Red'), AppColors.severityRed),
                                       const SizedBox(height: 8),
-                                      _Legend('Yellow', AppColors.severityYellow),
+                                      _Legend(context.tr('Yellow'), AppColors.severityYellow),
                                       const SizedBox(height: 8),
-                                      _Legend('Green', AppColors.severityGreen),
+                                      _Legend(context.tr('Green'), AppColors.severityGreen),
                                       const SizedBox(height: 16),
-                                      Text('Reviewed: $reviewed/${data.length}',
+                                      Text('${context.tr('Reviewed')}: $reviewed/${data.length}',
                                           style: const TextStyle(
                                               color: AppColors.textSecondary,
                                               fontSize: 11)),
@@ -280,7 +283,7 @@ class ThoDashboard extends ConsumerWidget {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                  child: Text('🚨 Red Alerts',
+                  child: Text('🚨 ${context.tr('Red Alerts')}',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
@@ -292,11 +295,11 @@ class ThoDashboard extends ConsumerWidget {
                 data: (data) {
                   final reds = data.where((r) => r.severity == 'red').take(5).toList();
                   if (reds.isEmpty) {
-                    return const SliverToBoxAdapter(
+                    return SliverToBoxAdapter(
                       child: Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Text('No red alerts 🎉',
-                            style: TextStyle(color: AppColors.textSecondary)),
+                        padding: const EdgeInsets.all(20),
+                        child: Text(context.tr('No red alerts 🎉'),
+                            style: const TextStyle(color: AppColors.textSecondary)),
                       ),
                     );
                   }

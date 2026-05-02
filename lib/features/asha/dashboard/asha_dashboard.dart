@@ -7,10 +7,12 @@ import '../../../core/auth/auth_provider.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/endpoints.dart';
 import '../../../core/models/models.dart';
+import '../../../core/i18n/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/offline/offline_queue.dart';
 import '../../../shared/widgets/severity_badge.dart';
 import '../../../shared/widgets/offline_banner.dart';
+import '../../../shared/widgets/language_selector.dart';
 
 final _ashaRecordsProvider = FutureProvider<List<TriageRecordModel>>((ref) async {
   try {
@@ -91,13 +93,13 @@ class _AshaDashboardState extends ConsumerState<AshaDashboard> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Namaste 🙏',
+                                    context.tr('Namaste 🙏'),
                                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                       color: AppColors.textSecondary,
                                     ),
                                   ),
                                   Text(
-                                    user?.fullName ?? user?.employeeId ?? 'ASHA Worker',
+                                    user?.fullName ?? user?.employeeId ?? context.tr('ASHA Worker'),
                                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.textPrimary,
@@ -113,6 +115,7 @@ class _AshaDashboardState extends ConsumerState<AshaDashboard> {
                                 ],
                               ),
                             ),
+                            const LanguageSelector(),
                             GestureDetector(
                               onTap: () => context.push('/asha/profile'),
                               child: CircleAvatar(
@@ -147,7 +150,7 @@ class _AshaDashboardState extends ConsumerState<AshaDashboard> {
                       children: [
                         Expanded(
                           child: _StatCard(
-                            label: 'Patients',
+                            label: context.tr('Patients'),
                             icon: Icons.people_rounded,
                             asyncValue: patients,
                             valueBuilder: (data) => '${data.length}',
@@ -157,7 +160,7 @@ class _AshaDashboardState extends ConsumerState<AshaDashboard> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _StatCard(
-                            label: 'Red Alerts',
+                            label: context.tr('Red Alerts'),
                             icon: Icons.warning_rounded,
                             asyncValue: records,
                             valueBuilder: (data) =>
@@ -168,7 +171,7 @@ class _AshaDashboardState extends ConsumerState<AshaDashboard> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _StatCard(
-                            label: 'Triages',
+                            label: context.tr('Triages'),
                             icon: Icons.assignment_rounded,
                             asyncValue: records,
                             valueBuilder: (data) => '${data.length}',
@@ -185,7 +188,7 @@ class _AshaDashboardState extends ConsumerState<AshaDashboard> {
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
                     child: Text(
-                      'Recent Triage',
+                      context.tr('Recent Triage'),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
@@ -200,7 +203,7 @@ class _AshaDashboardState extends ConsumerState<AshaDashboard> {
                       return SliverToBoxAdapter(
                         child: _EmptyState(
                           icon: Icons.assignment_outlined,
-                          message: 'No triage records yet.\nTap Triage tab to start.',
+                          message: context.tr('No triage records yet.\nTap Triage tab to start.'),
                         ),
                       );
                     }
@@ -215,7 +218,7 @@ class _AshaDashboardState extends ConsumerState<AshaDashboard> {
                   error: (_, __) => SliverToBoxAdapter(
                     child: _EmptyState(
                       icon: Icons.cloud_off_rounded,
-                      message: 'Could not load records.\nYou may be offline.',
+                      message: context.tr('Could not load records.\nYou may be offline.'),
                     ),
                   ),
                 ),
@@ -254,7 +257,7 @@ class _OfflineQueueBadge extends StatelessWidget {
           const Icon(Icons.cloud_upload_outlined, color: AppColors.warning, size: 18),
           const SizedBox(width: 10),
           Text(
-            '$count item${count > 1 ? 's' : ''} pending sync',
+            context.tr('Pending sync items').replaceAll('{count}', '$count'),
             style: const TextStyle(color: AppColors.warning, fontSize: 13),
           ),
         ],

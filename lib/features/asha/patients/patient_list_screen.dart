@@ -8,6 +8,7 @@ import '../../../core/api/endpoints.dart';
 import '../../../core/models/models.dart';
 import '../../../core/offline/offline_queue.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/i18n/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import 'package:uuid/uuid.dart';
 import 'package:dio/dio.dart';
@@ -27,11 +28,11 @@ class PatientListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final patients = ref.watch(_patientsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Patients')),
+      appBar: AppBar(title: Text(context.tr('Patients'))),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/asha/patients/new'),
         icon: const Icon(Icons.person_add_rounded),
-        label: const Text('Register'),
+        label: Text(context.tr('Register')),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
@@ -40,14 +41,14 @@ class PatientListScreen extends ConsumerWidget {
         child: patients.when(
           data: (data) {
             if (data.isEmpty) {
-              return const Center(
+              return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.people_outline_rounded, size: 64, color: AppColors.textMuted),
-                    SizedBox(height: 16),
-                    Text('No patients registered yet',
-                        style: TextStyle(color: AppColors.textSecondary)),
+                    const Icon(Icons.people_outline_rounded, size: 64, color: AppColors.textMuted),
+                    const SizedBox(height: 16),
+                    Text(context.tr('No patients registered yet'),
+                        style: const TextStyle(color: AppColors.textSecondary)),
                   ],
                 ),
               );
@@ -57,51 +58,54 @@ class PatientListScreen extends ConsumerWidget {
               itemCount: data.length,
               itemBuilder: (ctx, i) {
                 final p = data[i];
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.cardBorder),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: AppColors.primary.withOpacity(0.15),
-                        child: Text(
-                          p.name.isNotEmpty ? p.name[0].toUpperCase() : '?',
-                          style: const TextStyle(
-                              color: AppColors.primary, fontWeight: FontWeight.w700),
+                return GestureDetector(
+                  onTap: () => context.push('/asha/patients/detail', extra: p),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.cardBorder),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: AppColors.primary.withOpacity(0.15),
+                          child: Text(
+                            p.name.isNotEmpty ? p.name[0].toUpperCase() : '?',
+                            style: const TextStyle(
+                                color: AppColors.primary, fontWeight: FontWeight.w700),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(p.name,
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(p.name,
+                                  style: const TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 3),
+                              Text(
+                                [
+                                  if (p.age != null) '${p.age}y',
+                                  p.gender,
+                                  p.village,
+                                  p.district,
+                                ].whereType<String>().join(' • '),
                                 style: const TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.w600)),
-                            const SizedBox(height: 3),
-                            Text(
-                              [
-                                if (p.age != null) '${p.age}y',
-                                p.gender,
-                                p.village,
-                                p.district,
-                              ].whereType<String>().join(' • '),
-                              style: const TextStyle(
-                                  color: AppColors.textSecondary, fontSize: 12),
-                            ),
-                          ],
+                                    color: AppColors.textSecondary, fontSize: 12),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      if (p.pregnant)
-                        const Icon(Icons.child_care_rounded,
-                            color: AppColors.accent, size: 18),
-                    ],
+                        if (p.pregnant)
+                          const Icon(Icons.child_care_rounded,
+                              color: AppColors.accent, size: 18),
+                      ],
+                    ),
                   ),
                 ).animate().fade(
                     delay: Duration(milliseconds: i * 40), duration: 350.ms);
@@ -122,9 +126,9 @@ class PatientListScreen extends ConsumerWidget {
               ),
             ),
           ),
-          error: (_, __) => const Center(
-            child: Text('Could not load patients',
-                style: TextStyle(color: AppColors.textSecondary)),
+          error: (_, __) => Center(
+            child: Text(context.tr('Could not load patients'),
+                style: const TextStyle(color: AppColors.textSecondary)),
           ),
         ),
       ),
@@ -187,7 +191,7 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
       await ApiClient().dio.post(ApiEndpoints.patients, data: payload);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Patient registered'), backgroundColor: AppColors.success),
+          SnackBar(content: Text(context.tr('✅ Patient registered')), backgroundColor: AppColors.success),
         );
         context.pop();
       }
@@ -202,8 +206,8 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
         ));
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('📶 Saved offline — will sync when connected'),
+            SnackBar(
+              content: Text(context.tr('📶 Saved offline — will sync when connected')),
               backgroundColor: AppColors.warning,
             ),
           );
@@ -222,7 +226,7 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Register Patient')),
+       appBar: AppBar(title: Text(context.tr('Register Patient'))),
       body: Container(
         decoration: BoxDecoration(gradient: AppTheme.backgroundGradient),
         child: Form(
@@ -232,13 +236,13 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
             children: [
               TextFormField(
                 controller: _nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Full Name *',
+                decoration: InputDecoration(
+                  labelText: context.tr('Full Name *'),
                   prefixIcon: Icon(Icons.person_outline_rounded,
                       color: AppColors.textSecondary),
                 ),
                 validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    (v == null || v.trim().isEmpty) ? context.tr('Required') : null,
               ),
               const SizedBox(height: 14),
               Row(
@@ -247,7 +251,7 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
                     child: TextFormField(
                       controller: _ageCtrl,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Age'),
+                        decoration: InputDecoration(labelText: context.tr('Age')),
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -256,9 +260,9 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
                       value: _gender,
                       dropdownColor: AppColors.card,
                       style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: const InputDecoration(labelText: 'Gender'),
+                      decoration: InputDecoration(labelText: context.tr('Gender')),
                       items: ['Male', 'Female', 'Other']
-                          .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                          .map((g) => DropdownMenuItem(value: g, child: Text(context.tr(g))))
                           .toList(),
                       onChanged: (v) => setState(() => _gender = v!),
                     ),
@@ -268,7 +272,7 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
               const SizedBox(height: 14),
               TextFormField(
                 controller: _villageCtrl,
-                decoration: const InputDecoration(labelText: 'Village'),
+                 decoration: InputDecoration(labelText: context.tr('Village')),
               ),
               const SizedBox(height: 14),
               Row(
@@ -276,14 +280,14 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _tehsilCtrl,
-                      decoration: const InputDecoration(labelText: 'Tehsil'),
+                       decoration: InputDecoration(labelText: context.tr('Tehsil')),
                     ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: TextFormField(
                       controller: _districtCtrl,
-                      decoration: const InputDecoration(labelText: 'District'),
+                       decoration: InputDecoration(labelText: context.tr('District')),
                     ),
                   ),
                 ],
@@ -291,13 +295,13 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
               const SizedBox(height: 14),
               TextFormField(
                 controller: _abhaCtrl,
-                decoration: const InputDecoration(labelText: 'ABHA ID (optional)'),
+                 decoration: InputDecoration(labelText: context.tr('ABHA ID (optional)')),
               ),
               const SizedBox(height: 8),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Pregnant',
-                    style: TextStyle(color: AppColors.textPrimary)),
+                 title: Text(context.tr('Pregnant'),
+                     style: const TextStyle(color: AppColors.textPrimary)),
                 value: _pregnant,
                 activeColor: AppColors.primary,
                 onChanged: (v) => setState(() => _pregnant = v),
@@ -307,7 +311,7 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
                 onPressed: _loading ? null : _submit,
                 child: _loading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Register Patient'),
+                     : Text(context.tr('Register Patient')),
               ),
               const SizedBox(height: 40),
             ],

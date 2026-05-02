@@ -4,6 +4,8 @@ import 'core/api/api_client.dart';
 import 'core/router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/offline/offline_queue.dart';
+import 'core/i18n/app_localizations.dart';
+import 'core/i18n/locale_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +19,7 @@ class SwasthyaSetuApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final locale = ref.watch(localeProvider);
 
     // Listen to connectivity changes and trigger sync when back online
     ref.listen(connectivityProvider, (prev, next) {
@@ -29,6 +32,9 @@ class SwasthyaSetuApp extends ConsumerWidget {
       title: 'Swasthya Setu',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      locale: locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       routerConfig: router,
     );
   }

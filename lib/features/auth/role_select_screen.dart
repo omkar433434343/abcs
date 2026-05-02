@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/i18n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
+import '../../shared/widgets/language_selector.dart';
 
-class RoleSelectScreen extends StatelessWidget {
+class RoleSelectScreen extends ConsumerWidget {
   const RoleSelectScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(gradient: AppTheme.backgroundGradient),
@@ -17,10 +20,14 @@ class RoleSelectScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 60),
+                const Align(
+                  alignment: Alignment.centerRight,
+                  child: LanguageSelector(),
+                ),
+                const SizedBox(height: 36),
 
                 Text(
-                  'Welcome to\nSwasthya Setu',
+                  context.tr('Welcome to\nSwasthya Setu'),
                   style: Theme.of(context).textTheme.displaySmall?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
@@ -31,7 +38,7 @@ class RoleSelectScreen extends StatelessWidget {
                 const SizedBox(height: 12),
 
                 Text(
-                  'Choose your portal to continue',
+                  context.tr('Choose your portal to continue'),
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -40,7 +47,7 @@ class RoleSelectScreen extends StatelessWidget {
                 const SizedBox(height: 60),
 
                 _RoleCard(
-                  title: 'ASHA Worker',
+                  title: context.tr('ASHA Worker'),
                   subtitle: 'Register patients, conduct triage, record health visits',
                   icon: Icons.person_pin_circle_rounded,
                   gradient: AppTheme.ashaGradient,
@@ -51,7 +58,7 @@ class RoleSelectScreen extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 _RoleCard(
-                  title: 'THO Officer',
+                  title: context.tr('THO Officer'),
                   subtitle: 'Monitor district health data, review records, track outbreaks',
                   icon: Icons.local_hospital_rounded,
                   gradient: AppTheme.thoGradient,
@@ -63,7 +70,7 @@ class RoleSelectScreen extends StatelessWidget {
 
                 Center(
                   child: Text(
-                    'Powered by AI · Works Offline',
+                    context.tr('Powered by AI · Works Offline'),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.textMuted,
                     ),

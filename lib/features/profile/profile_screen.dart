@@ -4,7 +4,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
 import '../../core/auth/auth_provider.dart';
+import '../../core/i18n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
+import '../../shared/widgets/language_selector.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -17,7 +19,8 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Profile'),
+        title: Text(context.tr('My Profile')),
+        actions: const [LanguageSelector()],
       ),
       body: Container(
         decoration: BoxDecoration(gradient: AppTheme.backgroundGradient),
@@ -121,13 +124,13 @@ class ProfileScreen extends ConsumerWidget {
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('Logout'),
-                    content: const Text('Are you sure you want to sign out?'),
+                    title: Text(context.tr('Logout')),
+                    content: Text(context.tr('Are you sure you want to sign out?')),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.tr('Cancel'))),
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('Logout', style: TextStyle(color: AppColors.error)),
+                        child: Text(context.tr('Logout'), style: const TextStyle(color: AppColors.error)),
                       ),
                     ],
                   ),
@@ -144,12 +147,12 @@ class ProfileScreen extends ConsumerWidget {
                 side: const BorderSide(color: AppColors.error, width: 1.5),
                 elevation: 0,
               ),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.logout_rounded),
-                  SizedBox(width: 12),
-                  Text('Logout from Account'),
+                  const Icon(Icons.logout_rounded),
+                  const SizedBox(width: 12),
+                  Text(context.tr('Logout from Account')),
                 ],
               ),
             ).animate().fade(delay: 400.ms),

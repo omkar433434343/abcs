@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/i18n/app_localizations.dart';
 
 class AshaShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
@@ -17,11 +17,10 @@ class AshaShell extends StatelessWidget {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: navigationShell.currentIndex,
         onTap: (index) => navigationShell.goBranch(index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.people_rounded), label: 'Patients'),
-          BottomNavigationBarItem(icon: Icon(Icons.assignment_add), label: 'Triage'),
-          BottomNavigationBarItem(icon: Icon(Icons.history_rounded), label: 'Records'),
+        items: [
+          BottomNavigationBarItem(icon: const Icon(Icons.home_rounded), label: context.tr('Home')),
+          BottomNavigationBarItem(icon: const Icon(Icons.people_rounded), label: context.tr('Patients')),
+          BottomNavigationBarItem(icon: const Icon(Icons.assignment_add), label: context.tr('Triage')),
         ],
       ),
     );

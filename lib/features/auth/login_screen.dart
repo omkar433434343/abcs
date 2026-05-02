@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/auth/auth_provider.dart';
+import '../../core/i18n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
+import '../../shared/widgets/language_selector.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   final String role;
@@ -56,6 +58,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 20),
+                  const Align(
+                    alignment: Alignment.centerRight,
+                    child: LanguageSelector(),
+                  ),
 
                   // Back button
                   GestureDetector(
@@ -65,7 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const Icon(Icons.arrow_back_ios_new_rounded,
                             size: 18, color: AppColors.textSecondary),
                         const SizedBox(width: 6),
-                        Text('Back',
+                        Text(context.tr('Back'),
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: AppColors.textSecondary,
                             )),
@@ -91,7 +97,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 16),
 
                   Text(
-                    'Sign In',
+                    context.tr('Sign In'),
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
@@ -101,7 +107,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 8),
 
                   Text(
-                    'Enter your Employee ID and password',
+                    context.tr('Enter your Employee ID and password'),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -112,13 +118,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   // Employee ID field
                   TextFormField(
                     controller: _idCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Employee ID',
-                      prefixIcon: Icon(Icons.badge_outlined, color: AppColors.textSecondary),
+                    decoration: InputDecoration(
+                      labelText: context.tr('Employee ID'),
+                      prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.textSecondary),
                     ),
                     textInputAction: TextInputAction.next,
                     validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Employee ID is required' : null,
+                        (v == null || v.trim().isEmpty) ? context.tr('Employee ID is required') : null,
                   ).animate().fade(delay: 300.ms, duration: 400.ms).slideY(begin: 0.2),
 
                   const SizedBox(height: 16),
@@ -128,7 +134,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _pwCtrl,
                     obscureText: _obscure,
                     decoration: InputDecoration(
-                      labelText: 'Password',
+                      labelText: context.tr('Password'),
                       prefixIcon: const Icon(Icons.lock_outline_rounded,
                           color: AppColors.textSecondary),
                       suffixIcon: IconButton(
@@ -142,7 +148,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) => _submit(),
                     validator: (v) =>
-                        (v == null || v.isEmpty) ? 'Password is required' : null,
+                        (v == null || v.isEmpty) ? context.tr('Password is required') : null,
                   ).animate().fade(delay: 400.ms, duration: 400.ms).slideY(begin: 0.2),
 
                   // Error message
@@ -197,8 +203,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               shadowColor: Colors.transparent,
                               minimumSize: const Size(double.infinity, 52),
                             ),
-                            child: const Text(
-                              'Sign In',
+                            child: Text(
+                              context.tr('Sign In'),
                               style: TextStyle(
                                   fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
                             ),
