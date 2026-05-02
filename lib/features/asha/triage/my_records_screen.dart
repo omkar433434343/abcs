@@ -10,8 +10,11 @@ import '../../../shared/widgets/severity_badge.dart';
 import '../../../shared/utils/date_utils.dart';
 
 final _myRecordsProvider = FutureProvider<List<TriageRecordModel>>((ref) async {
-  final res = await ApiClient().dio.get(ApiEndpoints.triageRecords);
-  return (res.data as List).map((e) => TriageRecordModel.fromJson(e)).toList();
+  final data = await ApiClient().getCachedList(
+    ApiEndpoints.triageRecords,
+    cacheKey: 'triage_records',
+  );
+  return data.map((e) => TriageRecordModel.fromJson(e)).toList();
 });
 
 class MyRecordsScreen extends ConsumerWidget {

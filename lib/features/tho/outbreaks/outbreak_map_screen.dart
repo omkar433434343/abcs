@@ -8,8 +8,11 @@ import '../../../core/models/models.dart';
 import '../../../core/theme/app_theme.dart';
 
 final _outbreaksProvider = FutureProvider<List<OutbreakModel>>((ref) async {
-  final res = await ApiClient().dio.get(ApiEndpoints.outbreaks);
-  return (res.data as List).map((e) => OutbreakModel.fromJson(e)).toList();
+  final data = await ApiClient().getCachedList(
+    ApiEndpoints.outbreaks,
+    cacheKey: 'outbreaks',
+  );
+  return data.map((e) => OutbreakModel.fromJson(e)).toList();
 });
 
 class OutbreakMapScreen extends ConsumerWidget {

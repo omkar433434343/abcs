@@ -13,8 +13,11 @@ import 'package:uuid/uuid.dart';
 import 'package:dio/dio.dart';
 
 final _patientsProvider = FutureProvider<List<PatientModel>>((ref) async {
-  final res = await ApiClient().dio.get(ApiEndpoints.patients);
-  return (res.data as List).map((e) => PatientModel.fromJson(e)).toList();
+  final data = await ApiClient().getCachedList(
+    ApiEndpoints.patients,
+    cacheKey: 'patients',
+  );
+  return data.map((e) => PatientModel.fromJson(e)).toList();
 });
 
 class PatientListScreen extends ConsumerWidget {

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../api/endpoints.dart';
+import '../offline/offline_cache.dart';
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
@@ -37,6 +38,46 @@ class ApiClient {
   }
 
   Dio get dio => _dio;
+
+  static bool _isOfflineError(Object error) {
+    if (error is! DioException) return false;
+    return error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.receiveTimeout ||
+        error.type == DioExceptionType.sendTimeout ||
+        error.type == DioExceptionType.connectionTimeout;
+  }
+
+  Future<List<dynamic>> getCachedList(String path, {String? cacheKey}) async {
+    final key = cacheKey ?? path;
+    try {
+      final res = await _dio.get(path);
+      final data = (res.data as List).cast<dynamic>();
+      await OfflineCache.write(key, data);
+      return data;
+    } catch (e) {
+      if (_isOfflineError(e)) {
+        final cached = await OfflineCache.read(key);
+        if (cached is List) return cached.cast<dynamic>();
+      }
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getCachedMap(String path, {String? cacheKey}) async {
+    final key = cacheKey ?? path;
+    try {
+      final res = await _dio.get(path);
+      final data = Map<String, dynamic>.from(res.data as Map);
+      await OfflineCache.write(key, data);
+      return data;
+    } catch (e) {
+      if (_isOfflineError(e)) {
+        final cached = await OfflineCache.read(key);
+        if (cached is Map) return Map<String, dynamic>.from(cached);
+      }
+      rethrow;
+    }
+  }
 
   // ── Auth helpers ─────────────────────────────────────────────────────────
   static Future<void> saveToken(String token) =>

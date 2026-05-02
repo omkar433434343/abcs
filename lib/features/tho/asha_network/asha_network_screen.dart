@@ -8,8 +8,11 @@ import '../../../core/models/models.dart';
 import '../../../core/theme/app_theme.dart';
 
 final _ashaWorkersProvider = FutureProvider<List<UserModel>>((ref) async {
-  final res = await ApiClient().dio.get(ApiEndpoints.ashaWorkers);
-  return (res.data as List).map((e) => UserModel.fromJson(e)).toList();
+  final data = await ApiClient().getCachedList(
+    ApiEndpoints.ashaWorkers,
+    cacheKey: 'asha_workers',
+  );
+  return data.map((e) => UserModel.fromJson(e)).toList();
 });
 
 class AshaNetworkScreen extends ConsumerWidget {

@@ -14,8 +14,11 @@ import '../../../shared/widgets/offline_banner.dart';
 
 final _ashaRecordsProvider = FutureProvider<List<TriageRecordModel>>((ref) async {
   try {
-    final res = await ApiClient().dio.get(ApiEndpoints.triageRecords);
-    return (res.data as List).map((e) => TriageRecordModel.fromJson(e)).toList();
+    final data = await ApiClient().getCachedList(
+      ApiEndpoints.triageRecords,
+      cacheKey: 'triage_records',
+    );
+    return data.map((e) => TriageRecordModel.fromJson(e)).toList();
   } catch (_) {
     return [];
   }
@@ -23,8 +26,11 @@ final _ashaRecordsProvider = FutureProvider<List<TriageRecordModel>>((ref) async
 
 final _ashaPatientsProvider = FutureProvider<List<PatientModel>>((ref) async {
   try {
-    final res = await ApiClient().dio.get(ApiEndpoints.patients);
-    return (res.data as List).map((e) => PatientModel.fromJson(e)).toList();
+    final data = await ApiClient().getCachedList(
+      ApiEndpoints.patients,
+      cacheKey: 'patients',
+    );
+    return data.map((e) => PatientModel.fromJson(e)).toList();
   } catch (_) {
     return [];
   }

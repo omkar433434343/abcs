@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:dio/dio.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/endpoints.dart';
 import '../../../core/models/models.dart';
+import '../../../core/offline/offline_queue.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/severity_badge.dart';
 import '../../../shared/utils/date_utils.dart';
 
 final _reviewQueueProvider = FutureProvider.autoDispose<List<TriageRecordModel>>((ref) async {
-  final res = await ApiClient().dio.get(ApiEndpoints.triageRecords);
-  final all = (res.data as List).map((e) => TriageRecordModel.fromJson(e)).toList();
+  final data = await ApiClient().getCachedList(
+    ApiEndpoints.triageRecords,
+    cacheKey: 'triage_records',
+  );
+  final all = data.map((e) => TriageRecordModel.fromJson(e)).toList();
   all.sort((a, b) {
     const order = {'red': 0, 'yellow': 1, 'green': 2};
     return (order[a.severity] ?? 1).compareTo(order[b.severity] ?? 1);
@@ -55,7 +60,7 @@ class TriageReviewScreen extends ConsumerWidget {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => const Center(
+          error: (error, stackTrace) => const Center(
             child: Text('Could not load records',
                 style: TextStyle(color: AppColors.textSecondary)),
           ),
@@ -83,6 +88,30 @@ class _ReviewCardState extends ConsumerState<_ReviewCard> {
     try {
       await ApiClient().dio.patch(ApiEndpoints.markReviewed(widget.record.id));
       widget.onReviewed();
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.connectionTimeout) {
+        await OfflineQueue.enqueueRequest(
+          method: 'PATCH',
+          endpoint: ApiEndpoints.markReviewed(widget.record.id),
+          data: const <String, dynamic>{},
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Saved offline - review will sync when online'),
+              backgroundColor: AppColors.warning,
+            ),
+          );
+        }
+        widget.onReviewed();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to mark reviewed')),
+        );
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

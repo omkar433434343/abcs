@@ -1,10 +1,10 @@
-import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../api/api_client.dart';
 import '../api/endpoints.dart';
 import '../models/models.dart';
 import '../offline/offline_queue.dart';
+import '../offline/offline_cache.dart';
 
 // ── Auth state ───────────────────────────────────────────────────────────────
 class AuthState {
@@ -40,13 +40,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _checkExistingToken() async {
     final hasToken = await ApiClient.hasToken();
-    if (hasToken) {
-      try {
-        final response = await ApiClient().dio.get(ApiEndpoints.me);
-        final user = UserModel.fromJson(response.data);
-        state = AuthState(user: user, isLoggedIn: true);
-      } catch (_) {
+    if (!hasToken) return;
+
+    final cachedUser = await OfflineCache.read('auth_user');
+    if (cachedUser is Map) {
+      state = AuthState(user: UserModel.fromJson(Map<String, dynamic>.from(cachedUser)), isLoggedIn: true);
+    }
+
+    try {
+      final me = await ApiClient().getCachedMap(ApiEndpoints.me, cacheKey: 'auth_user');
+      final user = UserModel.fromJson(me);
+      state = AuthState(user: user, isLoggedIn: true);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
         await ApiClient.clearToken();
+        await OfflineCache.remove('auth_user');
+        state = const AuthState();
       }
     }
   }
@@ -63,6 +72,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await ApiClient.saveToken(token);
       await ApiClient.saveRole(userData['role']);
       await ApiClient.saveUserId(userData['id']);
+      await OfflineCache.write('auth_user', userData);
       final user = UserModel.fromJson(userData);
       state = AuthState(user: user, isLoggedIn: true);
       return true;
@@ -78,6 +88,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     await ApiClient.clearToken();
+    await OfflineCache.remove('auth_user');
     state = const AuthState();
   }
 
@@ -85,9 +96,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       await ApiClient().dio.patch(ApiEndpoints.updateProfile, data: data);
       // Refresh profile
-      final response = await ApiClient().dio.get(ApiEndpoints.me);
-      final user = UserModel.fromJson(response.data);
+      final me = await ApiClient().getCachedMap(ApiEndpoints.me, cacheKey: 'auth_user');
+      final user = UserModel.fromJson(me);
       state = state.copyWith(user: user);
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.connectionTimeout) {
+        await OfflineQueue.enqueueRequest(
+          method: 'PATCH',
+          endpoint: ApiEndpoints.updateProfile,
+          data: data,
+        );
+      }
     } catch (_) {}
   }
 }

@@ -2,23 +2,27 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:dio/dio.dart';
 import 'dart:async';
 import '../api/api_client.dart';
 import '../api/endpoints.dart';
-import '../models/models.dart';
 
 // ── Offline queue item ────────────────────────────────────────────────────────
 class QueueItem {
   final String id;        // unique local id
-  final String type;      // 'patient' | 'triage'
+  final String type;      // 'patient' | 'triage' | 'request'
   final Map<String, dynamic> data;
   final DateTime createdAt;
+  final String? method;
+  final String? endpoint;
 
   QueueItem({
     required this.id,
     required this.type,
     required this.data,
     required this.createdAt,
+    this.method,
+    this.endpoint,
   });
 
   Map<String, dynamic> toJson() => {
@@ -26,6 +30,8 @@ class QueueItem {
     'type': type,
     'data': data,
     'created_at': createdAt.toIso8601String(),
+    'method': method,
+    'endpoint': endpoint,
   };
 
   factory QueueItem.fromJson(Map<String, dynamic> json) => QueueItem(
@@ -33,6 +39,8 @@ class QueueItem {
     type: json['type'],
     data: Map<String, dynamic>.from(json['data']),
     createdAt: DateTime.parse(json['created_at']),
+    method: json['method'],
+    endpoint: json['endpoint'],
   );
 }
 
@@ -57,6 +65,21 @@ class OfflineQueue {
     final items = await _load();
     items.add(item);
     await _save(items);
+  }
+
+  static Future<void> enqueueRequest({
+    required String method,
+    required String endpoint,
+    Map<String, dynamic>? data,
+  }) async {
+    await enqueue(QueueItem(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      type: 'request',
+      method: method.toUpperCase(),
+      endpoint: endpoint,
+      data: data ?? <String, dynamic>{},
+      createdAt: DateTime.now(),
+    ));
   }
 
   static Future<List<QueueItem>> getAll() => _load();
@@ -99,6 +122,12 @@ class SyncService {
             await ApiClient().dio.post(ApiEndpoints.patients, data: item.data);
           } else if (item.type == 'triage') {
             await ApiClient().dio.post(ApiEndpoints.triageRecords, data: item.data);
+          } else if (item.type == 'request' && item.method != null && item.endpoint != null) {
+            await ApiClient().dio.request(
+              item.endpoint!,
+              data: item.data,
+              options: Options(method: item.method),
+            );
           }
           await OfflineQueue.remove(item.id);
         } catch (_) {
