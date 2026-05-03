@@ -17,6 +17,8 @@ import '../features/tho/dashboard/tho_dashboard.dart';
 import '../features/tho/triage_review/triage_review_screen.dart';
 import '../features/tho/asha_network/asha_network_screen.dart';
 import '../features/tho/outbreaks/outbreak_map_screen.dart';
+import '../features/tho/patients/tho_patient_list_screen.dart';
+import '../features/tho/patients/tho_patient_detail_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/asha/asha_shell.dart';
 import '../features/tho/tho_shell.dart';
@@ -111,8 +113,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/tho/triage-review',
-                builder: (_, __) => const TriageReviewScreen(),
+                path: '/tho/patients',
+                builder: (_, __) => const ThoPatientListScreen(),
               ),
             ],
           ),
@@ -137,6 +139,14 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Other THO routes
       GoRoute(path: '/tho/profile', builder: (_, __) => const ProfileScreen()),
+      GoRoute(
+        path: '/tho/patients/detail',
+        builder: (_, state) => ThoPatientDetailScreen(patient: state.extra as PatientModel),
+      ),
+      GoRoute(
+        path: '/tho/triage-review',
+        builder: (_, __) => const TriageReviewScreen(),
+      ),
     ],
   );
 });

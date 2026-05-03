@@ -6,6 +6,7 @@ import 'core/theme/app_theme.dart';
 import 'core/offline/offline_queue.dart';
 import 'core/i18n/app_localizations.dart';
 import 'core/i18n/locale_provider.dart';
+import 'shared/widgets/app_logo_mark.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +37,27 @@ class SwasthyaSetuApp extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       routerConfig: router,
+      builder: (context, child) {
+        return Stack(
+          children: [
+            if (child != null) child,
+            IgnorePointer(
+              child: SafeArea(
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8, right: 10),
+                    child: Opacity(
+                      opacity: 0.18,
+                      child: const AppLogoMark(size: 24),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

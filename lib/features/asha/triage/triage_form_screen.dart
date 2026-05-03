@@ -27,8 +27,6 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _briefCtrl = TextEditingController();
-  final _tehsilCtrl = TextEditingController();
-  final _districtCtrl = TextEditingController();
 
   final _symptomsCtrl = TextEditingController();
   String _severity = 'yellow';
@@ -36,15 +34,27 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
   bool _loading = false;
   bool _gettingLocation = false;
   double? _lat, _lng;
+  String _defaultTehsil = '';
+  String _defaultDistrict = '';
   String? _aiSuggestion;
   String? _aiProviderInfo;
   bool _aiLoading = false;
+
+  static const List<String> _medicalTerms = [
+    'fever', 'cough', 'cold', 'headache', 'body ache', 'pain', 'chest pain',
+    'breathlessness', 'vomiting', 'diarrhea', 'loose motion', 'nausea',
+    'fatigue', 'dizziness', 'seizure', 'rash', 'swelling', 'sore throat',
+    'high bp', 'low bp', 'blood sugar', 'dehydration', 'abdominal pain',
+    'joint pain', 'bleeding', 'nose bleeding', 'burning urination',
+    'urinary pain', 'wheezing', 'weakness', 'loss of appetite',
+  ];
 
   @override
   void initState() {
     super.initState();
     final user = ref.read(authProvider).user;
-    if (user?.district != null) _districtCtrl.text = user!.district!;
+    _defaultDistrict = user?.district ?? '';
+    _defaultTehsil = user?.location ?? '';
     if (widget.autoVoice) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _startVoiceFill();
@@ -79,8 +89,6 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
   void dispose() {
     _nameCtrl.dispose();
     _briefCtrl.dispose();
-    _tehsilCtrl.dispose();
-    _districtCtrl.dispose();
     _symptomsCtrl.dispose();
     super.dispose();
   }
@@ -104,17 +112,18 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
   String _getOfflineAdvice(String symptoms) {
     final lower = symptoms.toLowerCase();
     final suggestions = <String>[];
+    final lang = Localizations.localeOf(context).languageCode;
     
     // Core Medical Protocol Fallbacks (WHO/IMNCI-inspired)
-    if (lower.contains('fever') || lower.contains('body hot') || lower.contains('tap')) {
+    if (lower.contains('fever') || lower.contains('body hot') || lower.contains('tap') || lower.contains('बुखार') || lower.contains('ज्वर') || lower.contains('ಜ್ವರ')) {
       suggestions.add('Monitor temperature regularly using a thermometer.');
       suggestions.add('Keep the patient hydrated with plenty of fluids or ORS.');
     }
-    if (lower.contains('cough') || lower.contains('breath') || lower.contains('chest')) {
+    if (lower.contains('cough') || lower.contains('breath') || lower.contains('chest') || lower.contains('खांसी') || lower.contains('सांस') || lower.contains('ಕೆಮ್ಮು') || lower.contains('ಉಸಿರ')) {
       suggestions.add('Monitor breathing rate; check for any chest in-drawing.');
       suggestions.add('Keep the patient in a comfortable, upright position.');
     }
-    if (lower.contains('diarrhea') || lower.contains('vomit') || lower.contains('loose motion') || lower.contains('stomach')) {
+    if (lower.contains('diarrhea') || lower.contains('vomit') || lower.contains('loose motion') || lower.contains('stomach') || lower.contains('दस्त') || lower.contains('उल्टी') || lower.contains('ಅತಿಸಾರ') || lower.contains('ಓಕರಿ')) {
       suggestions.add('Administer ORS immediately after every loose motion.');
       suggestions.add('Continue breastfeeding or regular feeding if applicable.');
     }
@@ -126,25 +135,122 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
     suggestions.add('RED FLAGS: Seek immediate care if patient has seizures, persistent vomiting, or extreme lethargy.');
     
     if (suggestions.length <= 1) {
+      if (lang == 'hi') {
+        return 'ऑफलाइन सलाह: मरीज को आराम दें, पर्याप्त पानी/ORS दें और निगरानी रखें। 24 घंटे से अधिक लक्षण बने रहें या बढ़ें तो तुरंत नजदीकी PHC जाएं।';
+      }
+      if (lang == 'kn') {
+        return 'ಆಫ್‌ಲೈನ್ ಸಲಹೆ: ರೋಗಿಗೆ ವಿಶ್ರಾಂತಿ ನೀಡಿ, ಸಾಕಷ್ಟು ದ್ರವ/ORS ನೀಡಿ ಮತ್ತು ನಿಗಾವಹಿಸಿ. 24 ಗಂಟೆಗಳಿಗೂ ಹೆಚ್ಚು ಲಕ್ಷಣಗಳು ಮುಂದುವರಿದರೆ ಅಥವಾ ಹೆಚ್ಚಾದರೆ ತಕ್ಷಣ ಸಮೀಪದ PHC ಗೆ ಹೋಗಿ.';
+      }
       return 'Offline Advice: Ensure the patient rests, stays hydrated, and is monitored closely. If symptoms persist for more than 24 hours or worsen, visit the nearest PHC immediately.';
     }
     
     return suggestions.map((s) => '- $s').join('\n');
   }
 
-  Future<void> _getAiSuggestion() async {
-    final sympList = _symptomsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-    if (sympList.isEmpty) {
+  List<String> _parseSymptoms(String text) => text
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .where((e) => e.isNotEmpty)
+      .toList();
+
+  int _distance(String a, String b) {
+    final m = a.length;
+    final n = b.length;
+    final dp = List.generate(m + 1, (_) => List<int>.filled(n + 1, 0));
+    for (var i = 0; i <= m; i++) dp[i][0] = i;
+    for (var j = 0; j <= n; j++) dp[0][j] = j;
+    for (var i = 1; i <= m; i++) {
+      for (var j = 1; j <= n; j++) {
+        final cost = a[i - 1] == b[j - 1] ? 0 : 1;
+        dp[i][j] = [
+          dp[i - 1][j] + 1,
+          dp[i][j - 1] + 1,
+          dp[i - 1][j - 1] + cost,
+        ].reduce((x, y) => x < y ? x : y);
+      }
+    }
+    return dp[m][n];
+  }
+
+  String? _closestMedicalTerm(String term) {
+    if (_medicalTerms.contains(term)) return null;
+    String? best;
+    var bestScore = 999;
+    for (final candidate in _medicalTerms) {
+      final d = _distance(term, candidate);
+      if (d < bestScore) {
+        bestScore = d;
+        best = candidate;
+      }
+    }
+    return bestScore <= 3 ? best : null;
+  }
+
+  Future<List<String>?> _reviewSymptomsWithAiPrompt(List<String> symptoms) async {
+    final suggestions = <int, String>{};
+    for (var i = 0; i < symptoms.length; i++) {
+      final s = symptoms[i];
+      final suggested = _closestMedicalTerm(s);
+      if (suggested != null && suggested != s) {
+        suggestions[i] = suggested;
+      }
+    }
+
+    if (suggestions.isEmpty) return symptoms;
+
+    final action = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('AI Symptom Check'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: suggestions.entries
+              .map((e) => Text('"${symptoms[e.key]}" -> "${e.value}"'))
+              .toList(),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, 'keep'), child: const Text('Keep as is')),
+          TextButton(onPressed: () => Navigator.pop(ctx, 'replace'), child: const Text('Use suggestions')),
+          TextButton(onPressed: () => Navigator.pop(ctx, 'cancel'), child: const Text('Cancel')),
+        ],
+      ),
+    );
+
+    if (action == 'cancel' || action == null) return null;
+    if (action == 'keep') return symptoms;
+
+    final updated = [...symptoms];
+    for (final e in suggestions.entries) {
+      updated[e.key] = e.value;
+    }
+    return updated;
+  }
+
+  Future<List<String>?> _prepareReviewedSymptoms() async {
+    final initial = _parseSymptoms(_symptomsCtrl.text);
+    final reviewed = await _reviewSymptomsWithAiPrompt(initial);
+    if (reviewed == null) return null;
+    _symptomsCtrl.text = reviewed.join(', ');
+    if (reviewed.isEmpty) {
+      if (!mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.tr('Please enter at least one symptom'))),
       );
-      return;
+      return null;
     }
+    return reviewed;
+  }
 
+  Future<void> _fetchAiSuggestionForSymptoms(List<String> sympList) async {
     setState(() => _aiLoading = true);
-    
     try {
-      // Check for internet connectivity (robust check)
+      final langCode = Localizations.localeOf(context).languageCode;
+      final responseLanguage = langCode == 'hi'
+          ? 'Hindi'
+          : langCode == 'kn'
+              ? 'Kannada'
+              : 'English';
       final connectivityResult = await Connectivity().checkConnectivity();
       if (connectivityResult.isEmpty || connectivityResult.contains(ConnectivityResult.none)) {
         setState(() {
@@ -154,37 +260,31 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
         return;
       }
 
-      // Use a shorter timeout for AI suggestions so offline fallback kicks in faster if connection is poor
       final res = await ApiClient().dio.post(
         ApiEndpoints.aiSuggestion,
         data: {
-          'symptoms': sympList,
+          'symptoms': [
+            ...sympList,
+            'Respond strictly in $responseLanguage language.',
+          ],
           'severity': _severity,
           'patient_gender': 'unknown',
           'patient_age': 0,
+          'language_preference': responseLanguage,
         },
         options: Options(
           sendTimeout: const Duration(seconds: 5),
           receiveTimeout: const Duration(seconds: 8),
         ),
       );
-      
+
       if (mounted) {
         setState(() {
           _aiSuggestion = res.data['suggestion'];
           _aiProviderInfo = res.data['provider'];
         });
       }
-    } on DioException catch (e) {
-      debugPrint('AI Suggestion Connection Issue: ${e.type}');
-      if (mounted) {
-        setState(() {
-          _aiSuggestion = _getOfflineAdvice(_symptomsCtrl.text);
-          _aiProviderInfo = 'Local Protocol (Offline Fallback)';
-        });
-      }
-    } catch (e) {
-      debugPrint('AI Suggestion Error: $e');
+    } catch (_) {
       if (mounted) {
         setState(() {
           _aiSuggestion = _getOfflineAdvice(_symptomsCtrl.text);
@@ -198,18 +298,20 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
     }
   }
 
+  Future<void> _getAiSuggestion() async {
+    final sympList = await _prepareReviewedSymptoms();
+    if (sympList == null) return;
+    await _fetchAiSuggestionForSymptoms(sympList);
+  }
+
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final sympList = _symptomsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-    if (sympList.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('Please enter at least one symptom'))),
-      );
-      return;
-    }
+    final sympList = await _prepareReviewedSymptoms();
+    if (sympList == null) return;
 
     setState(() => _loading = true);
+    await _fetchAiSuggestionForSymptoms(sympList);
     final payload = {
       'patient_name': _nameCtrl.text.trim(),
       'symptoms': sympList,
@@ -217,8 +319,8 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
       'sickle_cell_risk': _sickleCell,
       'brief': _briefCtrl.text.trim(),
       'ai_suggestion': _aiSuggestion,
-      'tehsil': _tehsilCtrl.text.trim(),
-      'district': _districtCtrl.text.trim(),
+      'tehsil': _defaultTehsil,
+      'district': _defaultDistrict,
       'latitude': _lat,
       'longitude': _lng,
     };
@@ -267,17 +369,6 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(context.tr('New Triage')),
-        actions: [
-          TextButton.icon(
-            onPressed: _loading ? null : _submit,
-            icon: _loading
-                ? const SizedBox(
-                    width: 16, height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.save_rounded, color: Colors.white),
-            label: Text(context.tr('Save'), style: const TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
       body: Container(
         decoration: BoxDecoration(gradient: AppTheme.backgroundGradient),
@@ -314,22 +405,25 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                 validator: (v) => (v == null || v.trim().isEmpty) ? context.tr('Required') : null,
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _tehsilCtrl,
-                      decoration: InputDecoration(labelText: context.tr('Tehsil')),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.cardBorder),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.place_outlined, color: AppColors.textSecondary, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${context.tr('Tehsil')}: ${_defaultTehsil.isEmpty ? '-' : _defaultTehsil}  •  ${context.tr('District')}: ${_defaultDistrict.isEmpty ? '-' : _defaultDistrict}',
+                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _districtCtrl,
-                      decoration: InputDecoration(labelText: context.tr('District')),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
 
               const SizedBox(height: 8),
@@ -454,22 +548,6 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
 
               const SizedBox(height: 16),
 
-              // AI suggestion
-              OutlinedButton.icon(
-                onPressed: _aiLoading ? null : _getAiSuggestion,
-                icon: _aiLoading
-                    ? const SizedBox(
-                        width: 16, height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.auto_awesome_rounded),
-                label: Text(context.tr('Get AI Suggestions')),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.accent,
-                  side: const BorderSide(color: AppColors.accent),
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-              ),
-
               if (_aiSuggestion != null) ...[
                 const SizedBox(height: 12),
                 Container(
@@ -486,7 +564,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                       Text(
                         _aiSuggestion!.replaceAll('**', ''),
                         style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 13, height: 1.5),
+                            color: AppColors.textSecondary, fontSize: 16, height: 1.55, fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
@@ -500,7 +578,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                 onPressed: _loading ? null : _submit,
                 child: _loading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(context.tr('Save Triage Record')),
+                    : Text(context.tr('Get AI Suggestion and Add to Database')),
               ),
               const SizedBox(height: 40),
             ],
