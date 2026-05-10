@@ -6,6 +6,9 @@
     <!-- Microphone for voice triage -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
+    <!-- Camera for ISL sign triage -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+
     <!-- Location for GPS triage tagging -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>

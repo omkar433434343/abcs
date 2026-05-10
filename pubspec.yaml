@@ -36,6 +36,12 @@ dependencies:
   # ── Voice Recording ──────────────────────────────────────────────
   record: ^6.0.0
 
+  # ── Camera / ISL Detection ───────────────────────────────────────
+  camera: ^0.11.4
+  google_mlkit_pose_detection: ^0.10.0
+  hand_landmarker: ^2.2.0
+  tflite_flutter: ^0.12.1
+
   # ── Location ─────────────────────────────────────────────────────
   geolocator: ^13.0.2
 
@@ -68,4 +74,6 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/models/isl_lstm_int8.tflite
+    - assets/isl_labels.json
     - assets/images/

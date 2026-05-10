@@ -44,11 +44,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     final cachedUser = await OfflineCache.read('auth_user');
     if (cachedUser is Map) {
-      state = AuthState(user: UserModel.fromJson(Map<String, dynamic>.from(cachedUser)), isLoggedIn: true);
+      state = AuthState(
+        user: UserModel.fromJson(Map<String, dynamic>.from(cachedUser)),
+        isLoggedIn: true,
+      );
     }
 
     try {
-      final me = await ApiClient().getCachedMap(ApiEndpoints.me, cacheKey: 'auth_user');
+      final me = await ApiClient().getCachedMap(
+        ApiEndpoints.me,
+        cacheKey: 'auth_user',
+      );
       final user = UserModel.fromJson(me);
       state = AuthState(user: user, isLoggedIn: true);
     } on DioException catch (e) {
@@ -77,13 +83,29 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(user: user, isLoggedIn: true);
       return true;
     } on DioException catch (e) {
-      final msg = e.response?.data?['detail'] ?? 'Login failed. Please try again.';
+      final msg =
+          e.response?.data?['detail'] ?? 'Login failed. Please try again.';
       state = state.copyWith(isLoading: false, error: msg);
       return false;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: 'Unexpected error: $e');
       return false;
     }
+  }
+
+  Future<void> loginAsGuest(String role) async {
+    final userData = {
+      'id': 'guest-$role',
+      'employee_id': 'GUEST-${role.toUpperCase()}',
+      'role': role,
+      'full_name': role == 'tho' ? 'Guest THO Officer' : 'Guest ASHA Worker',
+      'location': 'Offline demo',
+      'district': 'Demo district',
+    };
+    await ApiClient.saveRole(role);
+    await ApiClient.saveUserId(userData['id']!);
+    await OfflineCache.write('auth_user', userData);
+    state = AuthState(user: UserModel.fromJson(userData), isLoggedIn: true);
   }
 
   Future<void> logout() async {
@@ -96,7 +118,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       await ApiClient().dio.patch(ApiEndpoints.updateProfile, data: data);
       // Refresh profile
-      final me = await ApiClient().getCachedMap(ApiEndpoints.me, cacheKey: 'auth_user');
+      final me = await ApiClient().getCachedMap(
+        ApiEndpoints.me,
+        cacheKey: 'auth_user',
+      );
       final user = UserModel.fromJson(me);
       state = state.copyWith(user: user);
     } on DioException catch (e) {

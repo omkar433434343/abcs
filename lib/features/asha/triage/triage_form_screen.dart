@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
@@ -12,8 +13,6 @@ import '../../../core/theme/app_theme.dart';
 import 'package:uuid/uuid.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
-
-
 
 class TriageFormScreen extends ConsumerStatefulWidget {
   final bool autoVoice;
@@ -41,12 +40,37 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
   bool _aiLoading = false;
 
   static const List<String> _medicalTerms = [
-    'fever', 'cough', 'cold', 'headache', 'body ache', 'pain', 'chest pain',
-    'breathlessness', 'vomiting', 'diarrhea', 'loose motion', 'nausea',
-    'fatigue', 'dizziness', 'seizure', 'rash', 'swelling', 'sore throat',
-    'high bp', 'low bp', 'blood sugar', 'dehydration', 'abdominal pain',
-    'joint pain', 'bleeding', 'nose bleeding', 'burning urination',
-    'urinary pain', 'wheezing', 'weakness', 'loss of appetite',
+    'fever',
+    'cough',
+    'cold',
+    'headache',
+    'body ache',
+    'pain',
+    'chest pain',
+    'breathlessness',
+    'vomiting',
+    'diarrhea',
+    'loose motion',
+    'nausea',
+    'fatigue',
+    'dizziness',
+    'seizure',
+    'rash',
+    'swelling',
+    'sore throat',
+    'high bp',
+    'low bp',
+    'blood sugar',
+    'dehydration',
+    'abdominal pain',
+    'joint pain',
+    'bleeding',
+    'nose bleeding',
+    'burning urination',
+    'urinary pain',
+    'wheezing',
+    'weakness',
+    'loss of appetite',
   ];
 
   @override
@@ -85,6 +109,27 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
     }
   }
 
+  Future<void> _startSignFill() async {
+    final result = await context.push<List<String>>('/asha/triage/isl');
+    if (result == null || result.isEmpty || !mounted) return;
+
+    final existing = _parseSymptoms(_symptomsCtrl.text);
+    final merged = <String>[...existing];
+    for (final symptom in result) {
+      if (!merged.contains(symptom)) merged.add(symptom);
+    }
+
+    setState(() {
+      _symptomsCtrl.text = merged.join(', ');
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Symptoms filled from ISL signs'),
+        backgroundColor: AppColors.success,
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _nameCtrl.dispose();
@@ -99,7 +144,8 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
       final perm = await Geolocator.requestPermission();
       if (perm == LocationPermission.denied) return;
       final pos = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.medium);
+        desiredAccuracy: LocationAccuracy.medium,
+      );
       setState(() {
         _lat = pos.latitude;
         _lng = pos.longitude;
@@ -113,27 +159,55 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
     final lower = symptoms.toLowerCase();
     final suggestions = <String>[];
     final lang = Localizations.localeOf(context).languageCode;
-    
+
     // Core Medical Protocol Fallbacks (WHO/IMNCI-inspired)
-    if (lower.contains('fever') || lower.contains('body hot') || lower.contains('tap') || lower.contains('बुखार') || lower.contains('ज्वर') || lower.contains('ಜ್ವರ')) {
+    if (lower.contains('fever') ||
+        lower.contains('body hot') ||
+        lower.contains('tap') ||
+        lower.contains('बुखार') ||
+        lower.contains('ज्वर') ||
+        lower.contains('ಜ್ವರ')) {
       suggestions.add('Monitor temperature regularly using a thermometer.');
-      suggestions.add('Keep the patient hydrated with plenty of fluids or ORS.');
+      suggestions.add(
+        'Keep the patient hydrated with plenty of fluids or ORS.',
+      );
     }
-    if (lower.contains('cough') || lower.contains('breath') || lower.contains('chest') || lower.contains('खांसी') || lower.contains('सांस') || lower.contains('ಕೆಮ್ಮು') || lower.contains('ಉಸಿರ')) {
-      suggestions.add('Monitor breathing rate; check for any chest in-drawing.');
+    if (lower.contains('cough') ||
+        lower.contains('breath') ||
+        lower.contains('chest') ||
+        lower.contains('खांसी') ||
+        lower.contains('सांस') ||
+        lower.contains('ಕೆಮ್ಮು') ||
+        lower.contains('ಉಸಿರ')) {
+      suggestions.add(
+        'Monitor breathing rate; check for any chest in-drawing.',
+      );
       suggestions.add('Keep the patient in a comfortable, upright position.');
     }
-    if (lower.contains('diarrhea') || lower.contains('vomit') || lower.contains('loose motion') || lower.contains('stomach') || lower.contains('दस्त') || lower.contains('उल्टी') || lower.contains('ಅತಿಸಾರ') || lower.contains('ಓಕರಿ')) {
+    if (lower.contains('diarrhea') ||
+        lower.contains('vomit') ||
+        lower.contains('loose motion') ||
+        lower.contains('stomach') ||
+        lower.contains('दस्त') ||
+        lower.contains('उल्टी') ||
+        lower.contains('ಅತಿಸಾರ') ||
+        lower.contains('ಓಕರಿ')) {
       suggestions.add('Administer ORS immediately after every loose motion.');
-      suggestions.add('Continue breastfeeding or regular feeding if applicable.');
+      suggestions.add(
+        'Continue breastfeeding or regular feeding if applicable.',
+      );
     }
-    if (lower.contains('pain') || lower.contains('headache') || lower.contains('body ache')) {
+    if (lower.contains('pain') ||
+        lower.contains('headache') ||
+        lower.contains('body ache')) {
       suggestions.add('Ensure adequate rest in a quiet, cool room.');
     }
-    
+
     // Red Flags (Always include for safety)
-    suggestions.add('RED FLAGS: Seek immediate care if patient has seizures, persistent vomiting, or extreme lethargy.');
-    
+    suggestions.add(
+      'RED FLAGS: Seek immediate care if patient has seizures, persistent vomiting, or extreme lethargy.',
+    );
+
     if (suggestions.length <= 1) {
       if (lang == 'hi') {
         return 'ऑफलाइन सलाह: मरीज को आराम दें, पर्याप्त पानी/ORS दें और निगरानी रखें। 24 घंटे से अधिक लक्षण बने रहें या बढ़ें तो तुरंत नजदीकी PHC जाएं।';
@@ -143,7 +217,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
       }
       return 'Offline Advice: Ensure the patient rests, stays hydrated, and is monitored closely. If symptoms persist for more than 24 hours or worsen, visit the nearest PHC immediately.';
     }
-    
+
     return suggestions.map((s) => '- $s').join('\n');
   }
 
@@ -186,7 +260,9 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
     return bestScore <= 3 ? best : null;
   }
 
-  Future<List<String>?> _reviewSymptomsWithAiPrompt(List<String> symptoms) async {
+  Future<List<String>?> _reviewSymptomsWithAiPrompt(
+    List<String> symptoms,
+  ) async {
     final suggestions = <int, String>{};
     for (var i = 0; i < symptoms.length; i++) {
       final s = symptoms[i];
@@ -210,9 +286,18 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
               .toList(),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, 'keep'), child: const Text('Keep as is')),
-          TextButton(onPressed: () => Navigator.pop(ctx, 'replace'), child: const Text('Use suggestions')),
-          TextButton(onPressed: () => Navigator.pop(ctx, 'cancel'), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'keep'),
+            child: const Text('Keep as is'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'replace'),
+            child: const Text('Use suggestions'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'cancel'),
+            child: const Text('Cancel'),
+          ),
         ],
       ),
     );
@@ -235,7 +320,9 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
     if (reviewed.isEmpty) {
       if (!mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('Please enter at least one symptom'))),
+        SnackBar(
+          content: Text(context.tr('Please enter at least one symptom')),
+        ),
       );
       return null;
     }
@@ -249,10 +336,11 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
       final responseLanguage = langCode == 'hi'
           ? 'Hindi'
           : langCode == 'kn'
-              ? 'Kannada'
-              : 'English';
+          ? 'Kannada'
+          : 'English';
       final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult.isEmpty || connectivityResult.contains(ConnectivityResult.none)) {
+      if (connectivityResult.isEmpty ||
+          connectivityResult.contains(ConnectivityResult.none)) {
         setState(() {
           _aiSuggestion = _getOfflineAdvice(_symptomsCtrl.text);
           _aiProviderInfo = 'Local Protocol (Offline Mode)';
@@ -304,7 +392,6 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
     await _fetchAiSuggestionForSymptoms(sympList);
   }
 
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final sympList = await _prepareReviewedSymptoms();
@@ -329,7 +416,10 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
       await ApiClient().dio.post(ApiEndpoints.triageRecords, data: payload);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('✅ Record saved')), backgroundColor: AppColors.success),
+          SnackBar(
+            content: Text(context.tr('✅ Record saved')),
+            backgroundColor: AppColors.success,
+          ),
         );
         context.pop();
       }
@@ -337,16 +427,20 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
       if (e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.receiveTimeout) {
         // Save offline
-        await OfflineQueue.enqueue(QueueItem(
-          id: const Uuid().v4(),
-          type: 'triage',
-          data: payload,
-          createdAt: DateTime.now(),
-        ));
+        await OfflineQueue.enqueue(
+          QueueItem(
+            id: const Uuid().v4(),
+            type: 'triage',
+            data: payload,
+            createdAt: DateTime.now(),
+          ),
+        );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(context.tr('📶 Saved offline — will sync when connected')),
+              content: Text(
+                context.tr('📶 Saved offline — will sync when connected'),
+              ),
               backgroundColor: AppColors.warning,
             ),
           );
@@ -355,9 +449,9 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
       } else {
         final data = e.response?.data;
         final errorMsg = data is Map ? data['detail'] : e.message;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $errorMsg')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $errorMsg')));
       }
     } finally {
       setState(() => _loading = false);
@@ -367,9 +461,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr('New Triage')),
-      ),
+      appBar: AppBar(title: Text(context.tr('New Triage'))),
       body: Container(
         decoration: BoxDecoration(gradient: AppTheme.backgroundGradient),
         child: Form(
@@ -377,21 +469,59 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              // Header with Voice Triage button
+              // Header with assisted triage buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _SectionHeader(title: context.tr('Patient Info')),
-                  OutlinedButton.icon(
-                    onPressed: _startVoiceFill,
-                    icon: const Icon(Icons.mic_rounded, size: 18),
-                    label: Text(context.tr('Voice Fill')),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(color: AppColors.primary),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                      visualDensity: VisualDensity.compact,
-                    ),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _startSignFill,
+                        icon: const Icon(Icons.pan_tool_alt_rounded, size: 18),
+                        label: const Text('Sign Fill'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.accent,
+                          side: const BorderSide(color: AppColors.accent),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 0,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                      if (kDebugMode)
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              context.push('/asha/triage/isl/collect'),
+                          icon: const Icon(Icons.dataset_rounded, size: 18),
+                          label: const Text('Collect'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.warning,
+                            side: const BorderSide(color: AppColors.warning),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 0,
+                            ),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                      OutlinedButton.icon(
+                        onPressed: _startVoiceFill,
+                        icon: const Icon(Icons.mic_rounded, size: 18),
+                        label: Text(context.tr('Voice Fill')),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: const BorderSide(color: AppColors.primary),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 0,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -400,9 +530,14 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                 controller: _nameCtrl,
                 decoration: InputDecoration(
                   labelText: context.tr('Patient Name *'),
-                  prefixIcon: const Icon(Icons.person_outline_rounded, color: AppColors.textSecondary),
+                  prefixIcon: const Icon(
+                    Icons.person_outline_rounded,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty) ? context.tr('Required') : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? context.tr('Required')
+                    : null,
               ),
               const SizedBox(height: 12),
               Container(
@@ -414,12 +549,19 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.place_outlined, color: AppColors.textSecondary, size: 18),
+                    const Icon(
+                      Icons.place_outlined,
+                      color: AppColors.textSecondary,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         '${context.tr('Tehsil')}: ${_defaultTehsil.isEmpty ? '-' : _defaultTehsil}  •  ${context.tr('District')}: ${_defaultDistrict.isEmpty ? '-' : _defaultDistrict}',
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -434,17 +576,27 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                   _lat != null
                       ? Text(
                           '📍 ${_lat!.toStringAsFixed(4)}, ${_lng!.toStringAsFixed(4)}',
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
                         )
-                      : Text(context.tr('No location captured'),
-                          style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                      : Text(
+                          context.tr('No location captured'),
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
                   const Spacer(),
                   TextButton.icon(
                     onPressed: _gettingLocation ? null : _getLocation,
                     icon: _gettingLocation
                         ? const SizedBox(
-                            width: 14, height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2))
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Icon(Icons.my_location_rounded, size: 16),
                     label: Text(context.tr('Get GPS')),
                   ),
@@ -468,7 +620,9 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                         margin: const EdgeInsets.symmetric(horizontal: 4),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
-                          color: selected ? color.withOpacity(0.2) : AppColors.card,
+                          color: selected
+                              ? color.withOpacity(0.2)
+                              : AppColors.card,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: selected ? color : AppColors.cardBorder,
@@ -481,15 +635,17 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                               s == 'green'
                                   ? Icons.check_circle_rounded
                                   : s == 'yellow'
-                                      ? Icons.warning_rounded
-                                      : Icons.emergency_rounded,
+                                  ? Icons.warning_rounded
+                                  : Icons.emergency_rounded,
                               color: color,
                             ),
                             const SizedBox(height: 4),
                             Text(
                               s.toUpperCase(),
                               style: TextStyle(
-                                color: selected ? color : AppColors.textSecondary,
+                                color: selected
+                                    ? color
+                                    : AppColors.textSecondary,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -507,10 +663,17 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
               // Sickle cell
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                 title: Text(context.tr('Sickle Cell Risk'),
-                     style: const TextStyle(color: AppColors.textPrimary)),
-                 subtitle: Text(context.tr('Odisha high-risk district'),
-                     style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                title: Text(
+                  context.tr('Sickle Cell Risk'),
+                  style: const TextStyle(color: AppColors.textPrimary),
+                ),
+                subtitle: Text(
+                  context.tr('Odisha high-risk district'),
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
                 value: _sickleCell,
                 activeColor: AppColors.warning,
                 onChanged: (v) => setState(() => _sickleCell = v),
@@ -529,7 +692,9 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                   alignLabelWithHint: true,
                   hintText: context.tr('e.g. Fever, Cough, Headache'),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty) ? context.tr('Required') : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? context.tr('Required')
+                    : null,
               ),
 
               const SizedBox(height: 20),
@@ -556,7 +721,9 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.accent.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+                    border: Border.all(
+                      color: AppColors.accent.withOpacity(0.3),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -564,7 +731,11 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                       Text(
                         _aiSuggestion!.replaceAll('**', ''),
                         style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 16, height: 1.55, fontWeight: FontWeight.w500),
+                          color: AppColors.textSecondary,
+                          fontSize: 16,
+                          height: 1.55,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),

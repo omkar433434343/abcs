@@ -40,6 +40,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _loginAsGuest() async {
+    await ref.read(authProvider.notifier).loginAsGuest(widget.role);
+    if (mounted) {
+      context.go(isAsha ? '/asha' : '/tho');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
@@ -68,13 +75,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onTap: () => context.go('/role'),
                     child: Row(
                       children: [
-                        const Icon(Icons.arrow_back_ios_new_rounded,
-                            size: 18, color: AppColors.textSecondary),
+                        const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          size: 18,
+                          color: AppColors.textSecondary,
+                        ),
                         const SizedBox(width: 6),
-                        Text(context.tr('Back'),
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
-                            )),
+                        Text(
+                          context.tr('Back'),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
                       ],
                     ),
                   ),
@@ -83,14 +94,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   // Header gradient badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       gradient: gradient,
                       borderRadius: BorderRadius.circular(30),
                     ),
                     child: Text(
                       label,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ).animate().fade(duration: 400.ms).slideX(begin: -0.2),
 
@@ -117,39 +134,55 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   // Employee ID field
                   TextFormField(
-                    controller: _idCtrl,
-                    decoration: InputDecoration(
-                      labelText: context.tr('Employee ID'),
-                      prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.textSecondary),
-                    ),
-                    textInputAction: TextInputAction.next,
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? context.tr('Employee ID is required') : null,
-                  ).animate().fade(delay: 300.ms, duration: 400.ms).slideY(begin: 0.2),
+                        controller: _idCtrl,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Employee ID'),
+                          prefixIcon: const Icon(
+                            Icons.badge_outlined,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        textInputAction: TextInputAction.next,
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? context.tr('Employee ID is required')
+                            : null,
+                      )
+                      .animate()
+                      .fade(delay: 300.ms, duration: 400.ms)
+                      .slideY(begin: 0.2),
 
                   const SizedBox(height: 16),
 
                   // Password field
                   TextFormField(
-                    controller: _pwCtrl,
-                    obscureText: _obscure,
-                    decoration: InputDecoration(
-                      labelText: context.tr('Password'),
-                      prefixIcon: const Icon(Icons.lock_outline_rounded,
-                          color: AppColors.textSecondary),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                          color: AppColors.textSecondary,
+                        controller: _pwCtrl,
+                        obscureText: _obscure,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Password'),
+                          prefixIcon: const Icon(
+                            Icons.lock_outline_rounded,
+                            color: AppColors.textSecondary,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscure
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              color: AppColors.textSecondary,
+                            ),
+                            onPressed: () =>
+                                setState(() => _obscure = !_obscure),
+                          ),
                         ),
-                        onPressed: () => setState(() => _obscure = !_obscure),
-                      ),
-                    ),
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _submit(),
-                    validator: (v) =>
-                        (v == null || v.isEmpty) ? context.tr('Password is required') : null,
-                  ).animate().fade(delay: 400.ms, duration: 400.ms).slideY(begin: 0.2),
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _submit(),
+                        validator: (v) => (v == null || v.isEmpty)
+                            ? context.tr('Password is required')
+                            : null,
+                      )
+                      .animate()
+                      .fade(delay: 400.ms, duration: 400.ms)
+                      .slideY(begin: 0.2),
 
                   // Error message
                   if (auth.error != null) ...[
@@ -157,19 +190,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: AppColors.error.withOpacity(0.12),
+                        color: AppColors.error.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                        border: Border.all(
+                          color: AppColors.error.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline_rounded,
-                              color: AppColors.error, size: 18),
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: AppColors.error,
+                            size: 18,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               auth.error!,
-                              style: TextStyle(color: AppColors.error, fontSize: 13),
+                              style: TextStyle(
+                                color: AppColors.error,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         ],
@@ -182,7 +223,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   // Sign In button
                   auth.isLoading
                       ? Center(
-                          child: CircularProgressIndicator(color: gradient.colors.first),
+                          child: CircularProgressIndicator(
+                            color: gradient.colors.first,
+                          ),
                         )
                       : Container(
                           decoration: BoxDecoration(
@@ -190,7 +233,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: gradient.colors.first.withOpacity(0.4),
+                                color: gradient.colors.first.withValues(
+                                  alpha: 0.4,
+                                ),
                                 blurRadius: 20,
                                 offset: const Offset(0, 6),
                               ),
@@ -206,10 +251,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             child: Text(
                               context.tr('Sign In'),
                               style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
+
+                  const SizedBox(height: 12),
+
+                  OutlinedButton.icon(
+                    onPressed: auth.isLoading ? null : _loginAsGuest,
+                    icon: const Icon(Icons.person_outline_rounded),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 52),
+                      foregroundColor: gradient.colors.first,
+                      side: BorderSide(
+                        color: gradient.colors.first.withValues(alpha: 0.55),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    label: const Text(
+                      'Login as Guest',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
 
                   const SizedBox(height: 40),
                 ],

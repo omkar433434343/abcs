@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/models/models.dart';
 import '../core/auth/auth_provider.dart';
@@ -12,6 +13,8 @@ import '../features/asha/patients/patient_detail_screen.dart';
 import '../features/asha/patients/patient_chat_screen.dart';
 import '../features/asha/patients/patient_progress_form_screen.dart';
 import '../features/asha/triage/triage_form_screen.dart';
+import '../features/asha/triage/isl_triage_screen.dart';
+import '../features/asha/triage/isl_data_collection_screen.dart';
 import '../features/asha/triage/voice_triage_screen.dart';
 import '../features/tho/dashboard/tho_dashboard.dart';
 import '../features/tho/triage_review/triage_review_screen.dart';
@@ -30,13 +33,15 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/splash',
     redirect: (context, state) {
       final loggedIn = auth.isLoggedIn;
-      final onAuth = state.matchedLocation.startsWith('/login') ||
+      final onAuth =
+          state.matchedLocation.startsWith('/login') ||
           state.matchedLocation == '/role' ||
           state.matchedLocation == '/splash';
 
       if (!loggedIn && !onAuth) return '/role';
-      if (loggedIn && (state.matchedLocation == '/role' ||
-          state.matchedLocation.startsWith('/login'))) {
+      if (loggedIn &&
+          (state.matchedLocation == '/role' ||
+              state.matchedLocation.startsWith('/login'))) {
         final role = auth.user?.role ?? 'asha';
         return role == 'tho' ? '/tho' : '/asha';
       }
@@ -52,7 +57,8 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // ASHA Shell Route
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) => AshaShell(navigationShell: navigationShell),
+        builder: (context, state, navigationShell) =>
+            AshaShell(navigationShell: navigationShell),
         branches: [
           StatefulShellBranch(
             routes: [
@@ -61,7 +67,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           StatefulShellBranch(
             routes: [
-              GoRoute(path: '/asha/patients', builder: (_, __) => const PatientListScreen()),
+              GoRoute(
+                path: '/asha/patients',
+                builder: (_, __) => const PatientListScreen(),
+              ),
             ],
           ),
           StatefulShellBranch(
@@ -78,32 +87,49 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // Other ASHA routes (pushed on top)
-      GoRoute(path: '/asha/patients/new', builder: (_, __) => const PatientFormScreen()),
+      GoRoute(
+        path: '/asha/patients/new',
+        builder: (_, __) => const PatientFormScreen(),
+      ),
       GoRoute(
         path: '/asha/patients/edit',
-        builder: (_, state) => PatientFormScreen(editPatient: state.extra as PatientModel),
+        builder: (_, state) =>
+            PatientFormScreen(editPatient: state.extra as PatientModel),
       ),
       GoRoute(
         path: '/asha/patients/detail',
-        builder: (_, state) => PatientDetailScreen(patient: state.extra as PatientModel),
+        builder: (_, state) =>
+            PatientDetailScreen(patient: state.extra as PatientModel),
       ),
       GoRoute(
         path: '/asha/patients/chat',
-        builder: (_, state) => PatientChatScreen(patient: state.extra as PatientModel),
+        builder: (_, state) =>
+            PatientChatScreen(patient: state.extra as PatientModel),
       ),
       GoRoute(
         path: '/asha/patients/progress/new',
-        builder: (_, state) => PatientProgressFormScreen(patient: state.extra as PatientModel),
+        builder: (_, state) =>
+            PatientProgressFormScreen(patient: state.extra as PatientModel),
       ),
       GoRoute(
         path: '/asha/triage/voice',
         builder: (_, __) => const VoiceTriageScreen(),
       ),
+      GoRoute(
+        path: '/asha/triage/isl',
+        builder: (_, __) => const IslTriageScreen(),
+      ),
+      if (kDebugMode)
+        GoRoute(
+          path: '/asha/triage/isl/collect',
+          builder: (_, __) => const IslDataCollectionScreen(),
+        ),
       GoRoute(path: '/asha/profile', builder: (_, __) => const ProfileScreen()),
 
       // THO Shell Route
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) => ThoShell(navigationShell: navigationShell),
+        builder: (context, state, navigationShell) =>
+            ThoShell(navigationShell: navigationShell),
         branches: [
           StatefulShellBranch(
             routes: [
@@ -141,7 +167,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/tho/profile', builder: (_, __) => const ProfileScreen()),
       GoRoute(
         path: '/tho/patients/detail',
-        builder: (_, state) => ThoPatientDetailScreen(patient: state.extra as PatientModel),
+        builder: (_, state) =>
+            ThoPatientDetailScreen(patient: state.extra as PatientModel),
       ),
       GoRoute(
         path: '/tho/triage-review',
