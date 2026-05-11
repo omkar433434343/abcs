@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:ui';
 import '../../core/auth/auth_provider.dart';
 import '../../core/i18n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
@@ -132,57 +133,82 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   const SizedBox(height: 40),
 
-                  // Employee ID field
-                  TextFormField(
-                        controller: _idCtrl,
-                        decoration: InputDecoration(
-                          labelText: context.tr('Employee ID'),
-                          prefixIcon: const Icon(
-                            Icons.badge_outlined,
-                            color: AppColors.textSecondary,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+                        decoration: BoxDecoration(
+                          color: const Color(0x73FFFFFF),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: const Color(0xB5E8FFF0),
+                            width: 1.2,
                           ),
-                        ),
-                        textInputAction: TextInputAction.next,
-                        validator: (v) => (v == null || v.trim().isEmpty)
-                            ? context.tr('Employee ID is required')
-                            : null,
-                      )
-                      .animate()
-                      .fade(delay: 300.ms, duration: 400.ms)
-                      .slideY(begin: 0.2),
-
-                  const SizedBox(height: 16),
-
-                  // Password field
-                  TextFormField(
-                        controller: _pwCtrl,
-                        obscureText: _obscure,
-                        decoration: InputDecoration(
-                          labelText: context.tr('Password'),
-                          prefixIcon: const Icon(
-                            Icons.lock_outline_rounded,
-                            color: AppColors.textSecondary,
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscure
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              color: AppColors.textSecondary,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF22C55E).withValues(alpha: 0.18),
+                              blurRadius: 32,
+                              spreadRadius: 0,
+                              offset: const Offset(0, 12),
                             ),
-                            onPressed: () =>
-                                setState(() => _obscure = !_obscure),
-                          ),
+                          ],
                         ),
-                        textInputAction: TextInputAction.done,
-                        onFieldSubmitted: (_) => _submit(),
-                        validator: (v) => (v == null || v.isEmpty)
-                            ? context.tr('Password is required')
-                            : null,
-                      )
-                      .animate()
-                      .fade(delay: 400.ms, duration: 400.ms)
-                      .slideY(begin: 0.2),
+                        child: Column(
+                          children: [
+                            TextFormField(
+                                  controller: _idCtrl,
+                                  decoration: InputDecoration(
+                                    labelText: context.tr('Employee ID'),
+                                    prefixIcon: const Icon(
+                                      Icons.badge_outlined,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  textInputAction: TextInputAction.next,
+                                  validator: (v) => (v == null || v.trim().isEmpty)
+                                      ? context.tr('Employee ID is required')
+                                      : null,
+                                )
+                                .animate()
+                                .fade(delay: 300.ms, duration: 400.ms)
+                                .slideY(begin: 0.2),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                                  controller: _pwCtrl,
+                                  obscureText: _obscure,
+                                  decoration: InputDecoration(
+                                    labelText: context.tr('Password'),
+                                    prefixIcon: const Icon(
+                                      Icons.lock_outline_rounded,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscure
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                      onPressed: () =>
+                                          setState(() => _obscure = !_obscure),
+                                    ),
+                                  ),
+                                  textInputAction: TextInputAction.done,
+                                  onFieldSubmitted: (_) => _submit(),
+                                  validator: (v) => (v == null || v.isEmpty)
+                                      ? context.tr('Password is required')
+                                      : null,
+                            )
+                                .animate()
+                                .fade(delay: 400.ms, duration: 400.ms)
+                                .slideY(begin: 0.2),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
 
                   // Error message
                   if (auth.error != null) ...[

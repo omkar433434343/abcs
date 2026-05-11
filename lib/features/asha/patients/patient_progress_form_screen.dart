@@ -67,7 +67,7 @@ class _PatientProgressFormScreenState extends ConsumerState<PatientProgressFormS
       final usedEndpoint = await _postProgress(payload);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('✅ Progress update saved')), backgroundColor: AppColors.success),
+        SnackBar(content: Text(context.tr('Progress update saved')), backgroundColor: AppColors.success),
       );
       Navigator.pop(context, {'saved': true, 'endpoint': usedEndpoint});
     } on DioException catch (e) {
@@ -96,7 +96,7 @@ class _PatientProgressFormScreenState extends ConsumerState<PatientProgressFormS
         );
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('📶 Saved offline — will sync when connected')), backgroundColor: AppColors.warning),
+          SnackBar(content: Text(context.tr('Saved offline - will sync when connected')), backgroundColor: AppColors.warning),
         );
         Navigator.pop(context, {'saved': true, 'endpoint': queueEndpoint});
       } else if (e.response?.statusCode == 404 && mounted) {

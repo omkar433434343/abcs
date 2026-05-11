@@ -298,7 +298,7 @@ class ThoDashboard extends ConsumerWidget {
                     return SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.all(20),
-                        child: Text(context.tr('No red alerts 🎉'),
+                        child: Text(context.tr('No red alerts'),
                             style: const TextStyle(color: AppColors.textSecondary)),
                       ),
                     );

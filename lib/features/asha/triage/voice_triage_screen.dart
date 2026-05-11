@@ -331,7 +331,7 @@ class _ResultView extends StatelessWidget {
                       color: AppColors.warning.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text('⚠️ Sickle Cell Risk',
+                    child: const Text('Sickle Cell Risk',
                         style: TextStyle(color: AppColors.warning, fontSize: 12)),
                   ),
               ],

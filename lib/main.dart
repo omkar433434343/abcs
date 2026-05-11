@@ -38,9 +38,49 @@ class SwasthyaSetuApp extends ConsumerWidget {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       routerConfig: router,
       builder: (context, child) {
+        final content = child ?? const SizedBox.shrink();
         return Stack(
           children: [
-            if (child != null) child,
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: AppTheme.backgroundGradient,
+                ),
+              ),
+            ),
+            Positioned(
+              top: -120,
+              right: -80,
+              child: IgnorePointer(
+                child: Container(
+                  width: 280,
+                  height: 280,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [Color(0x5522C55E), Color(0x0022C55E)],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -140,
+              left: -90,
+              child: IgnorePointer(
+                child: Container(
+                  width: 300,
+                  height: 300,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [Color(0x3322C55E), Color(0x0022C55E)],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fill(child: content),
             IgnorePointer(
               child: SafeArea(
                 child: Align(
@@ -48,7 +88,7 @@ class SwasthyaSetuApp extends ConsumerWidget {
                   child: Padding(
                     padding: const EdgeInsets.only(top: 8, right: 10),
                     child: Opacity(
-                      opacity: 0.18,
+                      opacity: 0.16,
                       child: const AppLogoMark(size: 24),
                     ),
                   ),

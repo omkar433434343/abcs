@@ -215,7 +215,7 @@ class _ReviewCardState extends ConsumerState<_ReviewCard> {
                 ],
                 if (record.district != null) ...[
                   const SizedBox(height: 8),
-                  Text('📍 ${record.tehsil ?? ''} ${record.district}',
+                  Text('Location: ${record.tehsil ?? ''} ${record.district}',
                       style: const TextStyle(
                           color: AppColors.textMuted, fontSize: 11)),
                 ],

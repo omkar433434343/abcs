@@ -213,8 +213,8 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
           SnackBar(
             content: Text(
               widget.editPatient == null
-                  ? context.tr('✅ Patient registered')
-                  : context.tr('✅ Patient updated'),
+                  ? context.tr('Patient registered')
+                  : context.tr('Patient updated'),
             ),
             backgroundColor: AppColors.success,
           ),
@@ -241,7 +241,7 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(context.tr('📶 Saved offline — will sync when connected')),
+              content: Text(context.tr('Saved offline - will sync when connected')),
               backgroundColor: AppColors.warning,
             ),
           );

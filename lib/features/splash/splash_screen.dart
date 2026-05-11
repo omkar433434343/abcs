@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api/api_client.dart';
 import '../../core/theme/app_theme.dart';
+import '../../shared/widgets/app_logo_mark.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -46,16 +47,20 @@ class _SplashScreenState extends State<SplashScreen> {
                 height: 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: AppTheme.ashaGradient,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1A1A1A), Color(0xFF000000)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.4),
+                      color: Colors.black.withOpacity(0.35),
                       blurRadius: 40,
                       spreadRadius: 8,
                     ),
                   ],
                 ),
-                child: const Icon(Icons.favorite_rounded, color: Colors.white, size: 52),
+                child: const Center(child: AppLogoMark(size: 62)),
               )
                   .animate()
                   .scale(duration: 600.ms, curve: Curves.elasticOut)

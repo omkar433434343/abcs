@@ -23,9 +23,10 @@ class AppColors {
 
   // Backgrounds
   static const Color background = Color(0xFFF7FBF7); // Very light tinted green/white
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color card = Color(0xFFFFFFFF);
-  static const Color cardBorder = Color(0xFFE0E0E0);
+  static const Color surface = Color(0x99FFFFFF);
+  static const Color card = Color(0x8FFFFFFF);
+  static const Color cardBorder = Color(0x99E8FFF0);
+  static const Color glassGlow = Color(0x6622C55E);
 
   // Text
   static const Color textPrimary = Color(0xFF1B1B1B);
@@ -46,7 +47,7 @@ class AppTheme {
   static ThemeData get light {
     final base = ThemeData.light(useMaterial3: true);
     return base.copyWith(
-      scaffoldBackgroundColor: AppColors.background,
+      scaffoldBackgroundColor: Colors.transparent,
       colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
         secondary: AppColors.accent,
@@ -56,35 +57,37 @@ class AppTheme {
         onSecondary: Colors.white,
         onSurface: AppColors.textPrimary,
       ),
-      textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
+      textTheme: GoogleFonts.poppinsTextTheme(base.textTheme).apply(
         bodyColor: AppColors.textPrimary,
         displayColor: AppColors.textPrimary,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.inter(
-          color: Colors.white,
+        titleTextStyle: GoogleFonts.poppins(
+          color: AppColors.textPrimary,
           fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
       cardTheme: CardThemeData(
         color: AppColors.card,
-        elevation: 2,
-        shadowColor: Colors.black12,
+        elevation: 14,
+        shadowColor: AppColors.glassGlow,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.cardBorder, width: 1),
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.cardBorder, width: 1.2),
         ),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.card,
+        fillColor: const Color(0x99FFFFFF),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.cardBorder),
@@ -95,19 +98,20 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: const BorderSide(color: Color(0xFF22A34F), width: 2),
         ),
         labelStyle: const TextStyle(color: AppColors.textSecondary),
         hintStyle: const TextStyle(color: AppColors.textMuted),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: const Color(0xCC2E7D32),
           foregroundColor: Colors.white,
-          elevation: 2,
+          elevation: 0,
           minimumSize: const Size(double.infinity, 52),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          textStyle: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+          side: const BorderSide(color: Color(0x66FFFFFF)),
         ),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
@@ -117,7 +121,14 @@ class AppTheme {
         type: BottomNavigationBarType.fixed,
         elevation: 8,
       ),
-      dividerTheme: const DividerThemeData(color: AppColors.cardBorder, thickness: 1),
+      dividerTheme: const DividerThemeData(color: Color(0x55FFFFFF), thickness: 1),
+      listTileTheme: const ListTileThemeData(
+        tileColor: Color(0x8FFFFFFF),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(14)),
+          side: BorderSide(color: Color(0x99E8FFF0)),
+        ),
+      ),
     );
   }
 
@@ -135,9 +146,9 @@ class AppTheme {
   );
 
   static LinearGradient get backgroundGradient => const LinearGradient(
-    colors: [Color(0xFFF7FBF7), Color(0xFFE8F5E9)],
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
+    colors: [Color(0xFFEFFBF3), Color(0xFFDDF5E5), Color(0xFFEDF8F1)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
   );
 
   static Color severityColor(String severity) {

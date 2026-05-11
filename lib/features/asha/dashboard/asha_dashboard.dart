@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
+import 'dart:ui';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/endpoints.dart';
@@ -93,12 +94,6 @@ class _AshaDashboardState extends ConsumerState<AshaDashboard> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    context.tr('Namaste 🙏'),
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                  Text(
                                     user?.fullName ?? user?.employeeId ?? context.tr('ASHA Worker'),
                                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                       fontWeight: FontWeight.w700,
@@ -107,7 +102,7 @@ class _AshaDashboardState extends ConsumerState<AshaDashboard> {
                                   ),
                                   if (user?.location != null)
                                     Text(
-                                      '📍 ${user!.location}',
+                                      'Location: ${user!.location}',
                                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                         color: AppColors.textSecondary,
                                       ),
@@ -244,23 +239,36 @@ class _OfflineQueueBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.warning.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.warning.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.cloud_upload_outlined, color: AppColors.warning, size: 18),
-          const SizedBox(width: 10),
-          Text(
-            context.tr('Pending sync items').replaceAll('{count}', '$count'),
-            style: const TextStyle(color: AppColors.warning, fontSize: 13),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.58),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.74)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.warning.withValues(alpha: 0.14),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
+          child: Row(
+            children: [
+              const Icon(Icons.cloud_upload_outlined, color: AppColors.warning, size: 18),
+              const SizedBox(width: 10),
+              Text(
+                context.tr('Pending sync items').replaceAll('{count}', '$count'),
+                style: const TextStyle(color: AppColors.warning, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -283,37 +291,50 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 8),
-          asyncValue.when(
-            data: (d) => Text(
-              valueBuilder(d),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.56),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
               ),
-            ),
-            loading: () => Shimmer.fromColors(
-              baseColor: AppColors.card,
-              highlightColor: AppColors.cardBorder,
-              child: Container(width: 30, height: 24, color: Colors.white),
-            ),
-            error: (_, __) => const Text('—', style: TextStyle(color: AppColors.textMuted)),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(label,
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-        ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: color, size: 22),
+              const SizedBox(height: 8),
+              asyncValue.when(
+                data: (d) => Text(
+                  valueBuilder(d),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                loading: () => Shimmer.fromColors(
+                  baseColor: Colors.white.withValues(alpha: 0.6),
+                  highlightColor: Colors.white.withValues(alpha: 0.9),
+                  child: Container(width: 30, height: 24, color: Colors.white),
+                ),
+                error: (_, __) => const Text('—', style: TextStyle(color: AppColors.textMuted)),
+              ),
+              const SizedBox(height: 2),
+              Text(label,
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -372,40 +393,53 @@ class _TriageListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
-      child: Row(
-        children: [
-          SeverityBadge(severity: record.severity),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  record.patientName,
-                  style: const TextStyle(
-                      color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  record.brief,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                ),
-              ],
-            ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.55),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.72)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 5),
+              ),
+            ],
           ),
-          if (record.reviewed)
-            const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 18),
-        ],
+          child: Row(
+            children: [
+              SeverityBadge(severity: record.severity),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      record.patientName,
+                      style: const TextStyle(
+                          color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      record.brief,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              if (record.reviewed)
+                const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 18),
+            ],
+          ),
+        ),
       ),
     ).animate().fade(delay: Duration(milliseconds: index * 60), duration: 400.ms).slideX(begin: 0.1);
   }
@@ -415,8 +449,8 @@ class _ShimmerList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: AppColors.card,
-      highlightColor: AppColors.cardBorder,
+      baseColor: Colors.white.withValues(alpha: 0.45),
+      highlightColor: Colors.white.withValues(alpha: 0.8),
       child: Column(
         children: List.generate(
           3,
@@ -424,8 +458,9 @@ class _ShimmerList extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
             height: 70,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Colors.white.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.75)),
             ),
           ),
         ),

@@ -417,7 +417,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(context.tr('✅ Record saved')),
+            content: Text(context.tr('Record saved')),
             backgroundColor: AppColors.success,
           ),
         );
@@ -439,7 +439,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                context.tr('📶 Saved offline — will sync when connected'),
+                context.tr('Saved offline - will sync when connected'),
               ),
               backgroundColor: AppColors.warning,
             ),
@@ -469,13 +469,15 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              // Header with assisted triage buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // Header with assisted triage buttons              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   _SectionHeader(title: context.tr('Patient Info')),
                   Wrap(
                     spacing: 8,
+                    runSpacing: 8,
                     children: [
                       OutlinedButton.icon(
                         onPressed: _startSignFill,
@@ -575,7 +577,7 @@ class _TriageFormScreenState extends ConsumerState<TriageFormScreen> {
                 children: [
                   _lat != null
                       ? Text(
-                          '📍 ${_lat!.toStringAsFixed(4)}, ${_lng!.toStringAsFixed(4)}',
+                          'Location: ${_lat!.toStringAsFixed(4)}, ${_lng!.toStringAsFixed(4)}',
                           style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 12,
